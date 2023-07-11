@@ -1,0 +1,74 @@
+Lake.Name,Lake.Short.Name,Lake.Name.Folder,Reservoir.or.lake.,Country,latitude.dec.deg,longitude.dec.deg,elevation.m,mean.depth.m,max.depth.m,lake.area.sqkm,Average.Secchi.disk.depth.m,Light.extinction.coefficient.m,Duration,months_meas,reldepth_median,months_median,depth_meas
+Allequash Lake,Allequash,allequash,lake,USA,46.04,-89.62,494,2.9,8,1.64,3.2,NA,33.5534246575342,12,0.375,7,14
+Alqueva Reservoir,Alqueva,alqueva,reservoir,Portugal,38.2,-7.49,152,16.6,92,250,3.15,0.69,5.34520547945205,12,0.0652173913043478,6,14
+Lake Annie,Annie,annie,lake,USA,27.21,-81.35,33.7,NA,20.7,0.36,NA,NA,10.1068493150685,12,0.434782608695652,7,19
+Lake Argyle,Argyle,argyle,reservoir,Australia,-16.31,128.68,100,10.1,51,980,NA,0.89,1.53972602739726,7,0.27843137254902,8,1100
+Lake Biel,Biel,biel,lake,Switzerland,47.08,7.16,429,30,74,39.3,NA,0.51,42.8630136986301,12,0.27027027027027,6,13
+Big Muskellunge Lake,BigMuskellunge,big-muskellunge,lake,USA,46.02,-89.61,500,7.5,21.3,3.63,6.6,NA,33.4438356164384,12,0.422535211267606,7,24
+Black Oak Lake,BlackOak,black-oak,lake,USA,46.16,-89.32,521.51,10.36,25.91,2.28,3.2,NA,11.1205479452055,10,0.470551910459282,7,12
+Lake Burley Griffin,BurleyGriffin,burley-griffin,reservoir,Australia,-35.3,149.07,556,5,17,6.64,1.4,NA,29.6712328767123,12,0.411764705882353,5,64
+Crystal Lake,Crystal,crystal-lake,lake,USA,46,-89.61,501,10.4,20.4,0.38,7.5,NA,30.586301369863,12,0.441176470588235,7,27
+Crystal Bog,CrystalBog,crystal-bog,lake,USA,46.01,-89.61,501.5,1.7,2.5,0.01,1.5,NA,33.2876712328767,12,0.4,7,9
+Delavan Lake,Delavan,delavan,lake,USA,42.61,-88.6,282.55,7.61,16.46,6.96,3.53,NA,21.4821917808219,10,0.486026731470231,7,31
+Dickie Lake,Dickie,dickie,lake,Canada,45.15,-79.09,341,5,12,0.94,3.08,NA,10.5534246575342,8,0.416666666666667,8,20
+Eagle Lake,Eagle,eagle,lake,Canada,44.68,-76.7,190,10.1,31.1,6.65,4.62,NA,1.9972602739726,12,0.704180064308682,7,15
+Ekoln basin of Malaren,Ekoln,ekoln,lake,Sweden,59.75,17.62,0.7,11.5,50,20.18,NA,1.09,6.64657534246575,12,0.26,6,93
+Lake Erken,Erken,erken,lake,Sweden,59.84,18.63,10,9,21,24,3.83,NA,57.0356164383562,12,0.357142857142857,7,37
+Esthwaite Water,EsthwaiteWater,esthwaite-water,lake,United Kingdom,54.37,-2.99,65,6.9,16,0.96,NA,0.82,2,12,0.375,7,12
+Falling Creek Reservoir,FallingCreek,falling-creek,reservoir,USA,37.31,-79.84,507,4,9.3,119,NA,0.87,2.32054794520548,10,0.519838709677419,6,10356
+Lake Feeagh,Feeagh,feeagh,lake,Ireland,53.9,-9.5,15,14.5,44,3.9,1.74,0.98,13,12,0.363636363636364,7,13
+Fish Lake,Fish,fish,lake,USA,43.29,-89.65,265,6.6,18.9,0.8,2.4,NA,18.7506849315069,12,0.476190476190476,7,68
+Great Pond,GreatPond,great,lake,USA,44.53,-69.89,81,6.3,21,33.83,6.7,NA,2.37534246575342,8,0.428571428571429,7,10
+Green Lake,Green,green,lake,USA,43.81,-89,243,33.55,72,29.48,4.8,NA,14.1534246575342,8,0.444444444444444,7,79
+Harp Lake,Harp,harp,lake,Canada,45.38,-79.13,327,13.32,37.5,0.71,4.08,NA,10.5835616438356,9,0.48,8,47
+Kilpisjarvi,Kilpisjarvi,kilpisjarvi,lake,Finland,69.03,20.77,473,20,57,37.3,NA,0.3,3.63561643835616,10,0.33280701754386,5,41
+Lake Kinneret,Kinneret,kinneret,lake,Israel,32.82,35.58,-210,24,45,168,2.95,0.51,4.9972602739726,12,0.434444444444444,6,3896
+Lake Kivu,Kivu,kivu,lake,Rwanda/DR Congo,-1.73,29.24,1463,240,485,2700,5.21,0.27,12.3123287671233,12,0.0907216494845361,6,91
+Klicava Reservoir,Klicava,klicava,reservoir,Czechia,50.07,13.93,294.6,13.1,35,0.55,5.5,NA,22.5643835616438,12,0.00857142857142857,7,116
+Lake Kuivajarvi,Kuivajarvi,kuivajarvi,lake,Finland,60.47,23.51,130,6.3,13.2,0.62,NA,0.6,4.96438356164384,12,0.284090909090909,7,16
+Lake Langtjern,Langtjern,langtjern,lake,Norway,60.37,9.73,510,2,12,0.23,1.4,2.25,3.78904109589041,12,0.333333333333333,7,6
+Laramie Lake,Laramie,laramie,lake,USA,40.62,-105.84,2843.8,NA,6.4,0.14,0.6,NA,1.82739726027397,5,0.546875,7,33
+Lower Lake Zurich,LowerLakeZurich,lower-zurich,lake,Switzerland,47.28,8.58,406,49,136,67,NA,0.39,35.9205479452055,12,0.220588235294118,6,19
+Lake Mendota,Mendota,mendota,lake,USA,43.1,-89.41,258.5,12.8,25.3,39.61,3,NA,19.4904109589041,12,0.474308300395257,7,70
+Lake Monona,Monona,monona,lake,USA,43.06,-89.36,257,8.2,22.5,13.6,2.4,NA,19.5068493150685,12,0.466666666666667,7,69
+Mozhaysk reservoir,Mozhaysk,mozhaysk,reservoir,Russia,55.59,35.82,183,7,23,30.7,1,NA,0.720547945205479,9,0.260869565217391,6,47
+Mt Bold,MtBold,mt-bold,reservoir,Australia,-35.12,138.71,242.9,13,45.4,3.08,1.24,1.16,8.74520547945206,12,0.220264317180617,5,250
+Lake Muggelsee,Muggelsee,mueggelsee,lake,Germany,52.43,13.65,32.3,4.9,7.7,7.4,2,1.48,9.92602739726027,12,0.324675324675325,7,11
+Lake Neuchatel,Neuchatel,neuchatel,lake,Switzerland,46.54,6.52,429,64,152,217,NA,0.25,32.9369863013699,12,0.164473684210526,7,11
+Ngoring,Ngoring,ngoring,lake,China,34.9,97.7,4300,17.6,30.7,611,NA,0.3,0.953424657534247,12,0.415927753420195,6,16
+Lake Nohipalo Mustjaerv,NohipaloMustjarv,nohipalo-mustjaerv,lake,Estonia,57.93,27.34,61,3.9,8.9,0.22,0.46,NA,1.92328767123288,12,0.337078651685393,6,7
+Lake Nohipalo Valgejaerv,NohipaloValgejarv,nohipalo-valgejaerv,lake,Estonia,57.94,27.35,62,6.2,12.5,0.07,4.52,NA,1.92328767123288,12,0.32,7,9
+Okauchee Lake,Okauchee,okauchee,lake,USA,43.13,-88.43,269,7.62,28.65,4.9,6.94,NA,26.1972602739726,8,0.453752181500873,6,14
+Lake Paaijarvi,Paajarvi,paaijarvi,lake,Finland,61.07,25.13,102,15,85,13.44,2.2,1.15,4.64383561643836,8,0.164705882352941,8,30
+Rappbode Reservoir,Rappbode,rappbode,reservoir,Germany,51.74,10.89,415,28.6,89,3.95,4.8,0.25,38.7287671232877,12,0.280898876404494,7,34
+Rimov Reservoir,Rimov,rimov,reservoir,Czechia,48.85,14.49,471.48,16,44,2.11,2.9,NA,5,12,0.300227272727273,7,3139
+Lake Rotorua,Rotorua,rotorua,lake,New Zealand,-38.08,176.28,280,10.8,52.9,425,2.63,0.61,26.9260273972603,12,0.189035916824197,6,42
+Lake Sammamish,Sammamish,sammamish,lake,USA,47.59,-122.1,9,17.7,32,19.8,5,NA,24.9890410958904,12,0.376875,6,5393
+Sau Reservoir,Sau,sau,reservoir,Spain,41.97,2.4,425,29,65,5.8,2.57,0.84,54.0465753424658,12,0.338461538461538,6,72
+Sparkling Lake,Sparkling,sparkling,lake,USA,46.01,-89.7,495,10.9,20,0.64,6.2,NA,33.4575342465753,12,0.45,7,25
+Lake Stechlin,Stechlin,stechlin,lake,Germany,53.17,13.03,59.8,23.2,69.5,2.23,8.6,0.29,21.8438356164384,12,0.251798561151079,7,114
+Lake Sunapee,Sunapee,sunapee,lake,USA,43.23,-72.5,333,11.4,34,16.55,8.5,NA,27.3041095890411,12,0.176470588235294,8,61
+Lake Tahoe,Tahoe,tahoe,reservoir,USA,39.09,-120.03,1897,304.8,501,490,19.9,NA,6.42739726027397,12,0.420958083832335,6,67177
+Lake Tarawera,Tarawera,tarawera,lake,New Zealand,-38.21,176.43,300,50,87.5,41.3,8.34,0.18,19.6164383561644,12,0.468571428571429,6,84
+Toolik Lake,Toolik,toolik,lake,USA,68.63,-149.6,720,7,25,NA,4.6,NA,31.227397260274,5,0.36,7,191
+Trout Lake,Trout,trout-lake,lake,USA,46.03,-89.67,491.8,14.6,35.7,15.65,4.7,NA,33.5808219178082,12,0.448179271708683,7,42
+Trout Bog,TroutBog,trout-bog,lake,USA,46.04,-89.69,495,5.6,7.9,0,1.1,NA,33.3369863013699,11,0.379746835443038,7,14
+Two Sisters Lake,TwoSisters,two-sisters,lake,USA,45.77,-89.53,481,9.14,19.2,2.91,17.75,NA,25.0082191780822,8,0.47625,8,11
+Lake Vortsjarv,Vortsjarv,vortsjaerv,lake,Estonia,58.31,26.01,33,2.8,6,270,0.86,2.76,5.51506849315069,12,0.0833333333333333,6,2
+Lake Washington,Washington,washington,lake,USA,47.64,-122.27,5,33,65.2,87.6,5.3,NA,28.958904109589,12,0.253067484662577,7,446
+Windermere,Windermere,windermere,lake,United Kingdom,54.31,-2.95,39,21.3,64,14.76,NA,0.46,2,12,0.2265625,7,12
+Lake Wingra,Wingra,wingra,lake,USA,43.05,-89.43,254,2.7,6.7,1.36,0.7,NA,18.7342465753425,11,0.298507462686567,7,17
+Zlutice Reservoir,Zlutice,zlutice,reservoir,Czechia,50.09,13.11,507.95,8.5,24,1.5,2.8,NA,19.558904109589,12,0.0125,7,88
+Lake Taihu,Taihu,taihu,lake,China,31.24,120.17,3.3,2.1,4.8,2445,0.3,NA,15.1780821917808,12,0,7,1
+Lake Chao,Chao,chao,lake,China,31.53,117.53,4.5,3,7.98,780,0.38,NA,9.98082191780822,12,0,7,1
+Lake Hulun,Hulun,hulun,lake,China,49,117.39,545.6,5.75,8,2339,0.35,NA,15.7013698630137,12,0,7,1
+Rappbode Predam,Rappbodep,rappbodep,reservoir,Germany,51.71,10.8,533,5.3,16,0.24,2.26,NA,5.28767123287671,12,0.4864375,7,3988
+Hassel Predam,Hassel,hassel,reservoir,Germany,51.71,10.83,504,5,14,0.26,2.15,NA,5.29041095890411,12,0.493285714285714,7,4430
+Lake Arendsee,Arendsee,arendsee,lake,Germany,52.89,11.47,23,28.8,49,5.11,2.89,NA,9.91232876712329,12,0.408163265306122,7,16
+Lake Scharmutzelsee,Scharmutzel,scharmutzelsee,lake,Germany,52.25,14.05,38.3,8.8,29,12.1,2,NA,2.89041095890411,12,0.413793103448276,6,10
+Lake Zurich,Zurich,zurich,lake,Switzerland,47.28,8.6,406,51,136,68.2,5.04,NA,41.3479452054795,12,0.139705882352941,6,45
+Lake Thun,Thun,thun,lake,Switzerland,46.7,7.7,558,136,212,48.3,8.05,NA,25.9095890410959,12,0.283018867924528,7,38
+Lake Murten,Murten,murten,lake,Switzerland,46.93,7.08,429,22,45,22.8,3.49,NA,20.9232876712329,12,0.333333333333333,7,13
+Lake Bryrup,Bryrup,bryrup,lake,Denmark,56.02,9.52,66,4.6,9,0.37,2.1,NA,30.7068493150685,12,0.444444444444444,7,81
+Lake Bosumtwi,Bosumtwi,bosumtwi,lake,Ghana,6.3,1.25,210,34,78,52,1.2,NA,2.36438356164384,12,0.448717948717949,7,72
+Lake Vendyurskoe,Vendyurskoe,vendyurskoe,lake,Russia,62.1,33.1,131,5.3,13.4,10.4,3.5,1.5,8.33972602739726,12,0.538059701492537,7,143

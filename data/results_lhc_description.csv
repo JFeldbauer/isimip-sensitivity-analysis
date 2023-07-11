@@ -1,0 +1,25 @@
+column_name,description
+par_id,"unique identifier for the parameter set consisting of model name, lake name, date of the start of calibration run, and parameter set"
+model,used model in the parameter set
+lake,used lake in the parameter set
+rmse,root mean squared error of the parameter set (deg. Celsius)
+nse,Nash-Sutcliffe model efficiency of the parameter set (dimensionless)
+r,Pearson correlation coefficients for the parameter set (dimensionless)
+bias,bias of the parameter set (deg. Celsius)
+mae,mean absolute error of the parameter set (deg. Celsius)
+nmae,normalized mean absolute error of the parameter set (dimensionless)
+wind_speed,wind speed scaling factor (dimensionless) used in the parameter set
+swr,short wave radiation scaling factor (dimensionless) used in the parameter set
+c_relax_C,"parameter value for c_relax_C used for FLake, if other model is used it will be NA"
+fetch_lk,"parameter value for fetch_lk used for FLake, if other model is used it will be NA"
+depth_bs_lk,"parameter value for depth_bs_lk used for FLake, if other model is used it will be NA"
+mixing.coef_mix_hyp,"parameter value for mixing_coef_mix_hyp used for GLM, if other model is used it will be NA"
+mixing.coef_mix_conv,"parameter value for mixing_coef_mix_conv used for GLM, if other model is used it will be NA"
+mixing.coef_mix_turb,"parameter value for mixing_coef_mix_turb used for GLM, if other model is used it will be NA"
+turb_param.k_min,"parameter value for turb_param_k_min used for GOTM, if other model is used it will be NA"
+bottom.h0b,"parameter value for bottom.h0b used for GOTM, if other model is used it will be NA"
+turb_param.const_num,"parameter value for turb_param_const_num used for GOTM, if other model is used it will be NA"
+a_seiche,"parameter value for a_seiche used for Simstrat, if other model is used it will be NA"
+hgeo,"parameter value for hgeo used for Simstrat, if other model is used it will be NA"
+cd,"parameter value for cd used for Simstrat, if other model is used it will be NA"
+Kw,light extinction coefficient (1/m) used in the parameter set
