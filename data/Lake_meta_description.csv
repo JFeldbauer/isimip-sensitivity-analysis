@@ -1,0 +1,19 @@
+column_name,description
+Lake.Name,lake name
+Lake.Short.Name,short lake name
+Lake.Name.Folder,name of the folder for each lake
+Reservoir.or.lake.,either lake or reservoir
+Country,country the lake is located in
+latitude.dec.deg,coordinates of the lake latitude (decimal deg.)
+longitude.dec.deg,coordinates of the lake longitude (decimal deg.)
+elevation.m,elevation of the lake (m)
+mean.depth.m,mean depth of the lake (m)
+max.depth.m,maximum depth of the lake (m)
+lake.area.sqkm,lake surface area (km²)
+Average.Secchi.disk.depth.m,average Secchi disk depth (m)
+Light.extinction.coefficient.m,light extinction coefficient (1/m)
+Duration,simulated years for the calibration
+months_meas,number of unique months in which observations were availbale
+reldepth_median,"median relative depth of the observations (0 means surface, 1 means bottom)"
+months_median,median month of the observations
+depth_meas,number of unique depths at which water temperature was measured
