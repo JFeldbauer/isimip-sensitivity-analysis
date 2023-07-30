@@ -181,6 +181,20 @@ res |> group_by(model) |> ggplot() +
   geom_violin(aes(x = model, y = rmse, fill = model)) + scale_y_log10() +
   thm
 
+# check if the same models perform good or bad along the four models
+best_rmse |> group_by(lake) |> reframe(range_rmse = range(rmse),
+                                       sd_rmse = sd(rmse),
+                                       min_rmse = min(rmse),
+                                       max_rmse = max(rmse)) |>
+  ggplot() + geom_col(aes(y = range_rmse, x = lake))
+
+best_rmse |> group_by(lake) |> reframe(range_rmse = range(rmse),
+                                       min_rmse = min(rmse),
+                                       max_rmse = max(rmse),
+                                       model_min = model[rmse == min(rmse)],
+                                       model_max = model[rmse == max(rmse)]) |>
+  ggplot() + geom_point(aes(x = min_rmse, y = max_rmse, col = model_max)) +
+  geom_abline(aes(intercept = 0, slope = 1), col = 2, lty = 17)
 
 
 
@@ -202,7 +216,8 @@ best_rmse |> ggplot() + geom_point(aes(y = wind_speed,
 # function to plot heatmaps for model performance along the different parameter
 my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali,
                          pars = c("swr", "wind_speed", "mixing.coef_mix_turb",
-                                  "mixing.coef_mix_hyp")) {
+                                  "mixing.coef_mix_hyp"),
+                         log = rep(FALSE, length(pars))) {
   
   spec <- viridis::viridis(15)
   dat <- filter(res_cali, model == m & lake == l)
@@ -210,15 +225,22 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali,
   thm <- theme_pubr(base_size = 13) + grids()
   
   pl <- lapply(combn(pars, 2, simplify = FALSE), function(p) {
-    p <- ggplot(dat_best) +
-      geom_point(aes_string(x = p[1], y = p[2], color = "rmse"), shape = 15,
-                 size = 2, alpha = 0) +
-      geom_point(data = dat,
-                 aes_string(x = p[1], y = p[2], color = "rmse"), shape = 15,
-                 size = 1.5, alpha = 0.75) +
-      scale_colour_gradientn(colours = rev(spec)) + thm +
-      theme(legend.position = "none")
+    plt <- ggplot(dat_best) +
+        geom_point(aes_string(x = p[1], y = p[2], color = "rmse"), shape = 15,
+                   size = 2, alpha = 0) +
+        geom_point(data = dat,
+                   aes_string(x = p[1], y = p[2], color = "rmse"), shape = 15,
+                   size = 1.5, alpha = 0.75) +
+        scale_colour_gradientn(colours = rev(spec)) + thm +
+        theme(legend.position = "none")
     
+    if(log[pars %in% p[1]]) {
+      plt <- plt + scale_x_log10()
+    }
+    if(log[pars %in% p[2]]) {
+      plt <- plt + scale_y_log10()
+    }
+    return(plt)
   })
   
   t <- ggplot(dat) +
@@ -276,10 +298,17 @@ my_sens_plot(res_cali = res, pars = c("swr", "wind_speed", "Kw",
                                       "mixing.coef_mix_hyp",
                                       "mixing.coef_mix_conv"))
 
-# example plot showing all parameter for lake Kivu and model GLM
+# example plot showing all parameter for lake Biel and model GOTM
 my_sens_plot(res_cali = res, pars = c("swr", "wind_speed", "Kw",
-                                      "mixing.coef_mix_turb",
-                                      "mixing.coef_mix_hyp",
-                                      "mixing.coef_mix_conv"),
-             l = "Kivu")
+                                      "turb_param.const_num",
+                                      "bottom.h0b",
+                                      "turb_param.k_min"),
+             log = c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE),
+             l = "Biel", m = "GOTM")
 
+# example plot showing all parameter for lake Kivu and model Simstrat
+my_sens_plot(res_cali = res, pars = c("swr", "wind_speed", "Kw",
+                                      "cd",
+                                      "hgeo",
+                                      "a_seiche"),
+             l = "Kivu", m = "Simstrat")
