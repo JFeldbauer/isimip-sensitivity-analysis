@@ -22,11 +22,11 @@ results_df = pd.read_csv(folder+'results_lhc.csv')
 results_head = results_df.head(10)
 
 ## remove rmse larger than 20
-rmse_flter = results_df['rmse'] > 20
+rmse_flter = results_df['rmse'] < 20
 results_df = results_df[rmse_flter]
 
 ## remove r that are inf or nas
-r_flter = results_df['r'].isna()
+r_flter = np.invert(results_df['r'].isna())
 results_df = results_df[r_flter]
 
 # get all lake names 
