@@ -4,7 +4,7 @@ library(ggplot2)
 library(ggpubr)
 
 
-res <- read.csv("results/res_sens.csv")
+res <- read.csv("res_sens.csv")
 
 
 
@@ -17,7 +17,15 @@ res |> filter(lake == "Annie" & var == "rmse") |> ggplot() +
   theme(axis.text.x=element_text(angle = -90, hjust = 0)) +
   xlab("parameter") + ggtitle("Annie")
 
-res |> group_by(lake, model) |> summarise(par_s = names[delta == max(delta)]) |>
-  ggplot() + geom_histogram(aes(x = par_s), stat = "count") +
+res_mip <- res |> group_by(lake, model) |>
+  reframe(par_d = names[delta == max(delta)],
+          par_S1 = names[S1 == max(S1)])
+
+res_mip |> pivot_longer(cols = 3:4) |> ggplot() +
+  geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
   facet_wrap(~model, scales = "free_x") + theme_pubr() + grids() +
   xlab("parameter")
+
+# check how many times delta and S1 differ
+sum(res_mip$par_d != res_mip$par_S1)
+res_mip[res_mip$par_d != res_mip$par_S1, ]
