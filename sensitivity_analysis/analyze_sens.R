@@ -36,10 +36,16 @@ res_mip <- res |> group_by(lake, model) |>
 
 # plot distribution of most senstitive parameter over all lakes and models
 # for both measures
-res_mip |> pivot_longer(cols = 3:4) |> ggplot() +
+res_mip |> pivot_longer(cols = 3:4) |>
+  mutate(name = case_match(name,
+                           "par_d" ~ "delta",
+                           "par_S1" ~ "S1")) |> ggplot() +
   geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
-  facet_wrap(~model, scales = "free_x") + theme_pubr() + grids() +
-  xlab("parameter")
+  facet_wrap(~model, scales = "free_x") + theme_pubr(base_size = 17) +
+  grids() + xlab("parameter") +
+  scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
+
+ggsave("count_sens.png", width = 14, height = 9)
 
 # check how many times most sensitive parameter from delta and S1 differ
 sum(res_mip$par_d != res_mip$par_S1)
