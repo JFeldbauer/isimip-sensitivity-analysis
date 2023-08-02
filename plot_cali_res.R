@@ -73,10 +73,12 @@ p_pie <- best_rmse |> group_by(lake) |> slice(which.min(rmse)) |> group_by(model
   theme(legend.position = "right")
 
 # combine the two previous plots
+
+png("best_fit.png", width = 11, height = 7, units = "in", res = 300)
 subvp <- viewport(width = 0.35, height = 0.35, x = 0.8, y = 0.75)
 p_dist_lake
 print(p_pie, vp = subvp)
-
+dev.off()
 
 # a map of the lakes with the location color coded according to the best
 # performing model
@@ -98,10 +100,11 @@ best_rmse |> group_by(lake) |> slice(which.min(rmse)) |> ggplot() +
     aes(map_id = region)
   ) +
   geom_point(aes(y = latitude.dec.deg, x = longitude.dec.deg, col = rmse),
-             size = 2, position = "jitter") + ylim(-40, 70) +
-  xlim(-150, 180) + 
-  theme_void() + scale_color_viridis_c(option = "C")
+             size = 2, position = "jitter") + ylim(-90, 90) +
+  xlim(-180, 180) + xlab("Longitude") + ylab("Latitude") +
+  theme_pubclean(base_size = 17) + scale_color_viridis_c("RMSE (K)",option = "C")
 
+ggsave("map_best_rmse.png", width = 13, height = 8)
 
 
 ## function that plots relating min RMSE to lake characteristics
