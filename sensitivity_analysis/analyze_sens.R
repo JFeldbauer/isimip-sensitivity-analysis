@@ -43,7 +43,7 @@ res_mip <- res |> group_by(lake, model, var) |>
           par_S1 = names[S1 == max(S1)])
 
 # plot distribution of single most senstitive parameter over all lakes and models
-# for both measures
+# for all measures
 res_mip |> pivot_longer(cols = 4:5) |>
   mutate(name = case_match(name,
                            "par_d" ~ "delta",
