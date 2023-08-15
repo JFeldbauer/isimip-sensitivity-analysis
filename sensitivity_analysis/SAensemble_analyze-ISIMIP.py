@@ -29,6 +29,10 @@ results_df = results_df[rmse_flter]
 r_flter = np.invert(results_df['r'].isna())
 results_df = results_df[r_flter]
 
+# ## remove nmae that are inf or nas
+# nmae_flter = np.invert(results_df['nmae'] == np.inf)
+# results_df = results_df[nmae_flter]
+
 # get all lake names 
 lakes = results_df['lake'].unique()
 models = results_df['model'].unique()
@@ -78,7 +82,7 @@ bound_simstrat = [[0.25, 1.5],
 #    print(result_test[par].describe())
 
 # define stat metric
-stat = ['rmse', 'r']
+stat = ['rmse', 'r', 'nse', 'bias', 'mae']
 
 
 # data frame for the results
@@ -87,7 +91,7 @@ res = pd.DataFrame()
 # for loop over all lakes
 for l in lakes:
   
-  print('started lake: ', l)
+  print('started lake: ' + l)
   # loop over the four models
   for m in models:
     
@@ -164,30 +168,30 @@ res.to_csv('res_sens.csv', index=False)
 
 ### plot
 
-def plot_delta(si_df, SA_var, var, site, output_folder=None):
-        si_df = si_df.sort_values(SA_var, ascending=False)
-
-        plt.bar(si_df['names'], si_df[SA_var])
-        plt.errorbar(si_df['names'], si_df[SA_var], yerr=si_df[SA_var+'_conf'], fmt=".", color="r", alpha=0.5)
-        
-        """
-        if SA_var == 'delta':
-            plt.plot(si_df['names'], [dummy_val]*len(si_df['names']), '--', color='gray')
-            plt.plot(si_df['names'], [sens_threshold]*len(si_df['names']), '-', color='gray')      
-        """
-        
-        plt.xticks(rotation=75)
-        plt.title(var)
-        plt.ylabel(SA_var)
-        
-        if output_folder:
-            plt.savefig(output_folder+SA_var+'_'+site+'_'+var+'.png', dpi=400)
-        
-        plt.show()
-
-plot_folder = folder
-
-plot_delta(si_df, 'delta', stat, lake, output_folder=plot_folder)
-plot_delta(si_df, 'S1', stat, lake, output_folder=plot_folder)
+# def plot_delta(si_df, SA_var, var, site, output_folder=None):
+#         si_df = si_df.sort_values(SA_var, ascending=False)
+# 
+#         plt.bar(si_df['names'], si_df[SA_var])
+#         plt.errorbar(si_df['names'], si_df[SA_var], yerr=si_df[SA_var+'_conf'], fmt=".", color="r", alpha=0.5)
+#         
+#         """
+#         if SA_var == 'delta':
+#             plt.plot(si_df['names'], [dummy_val]*len(si_df['names']), '--', color='gray')
+#             plt.plot(si_df['names'], [sens_threshold]*len(si_df['names']), '-', color='gray')      
+#         """
+#         
+#         plt.xticks(rotation=75)
+#         plt.title(var)
+#         plt.ylabel(SA_var)
+#         
+#         if output_folder:
+#             plt.savefig(output_folder+SA_var+'_'+site+'_'+var+'.png', dpi=400)
+#         
+#         plt.show()
+# 
+# plot_folder = folder
+# 
+# plot_delta(si_df, 'delta', stat, lake, output_folder=plot_folder)
+# plot_delta(si_df, 'S1', stat, lake, output_folder=plot_folder)
 
 
