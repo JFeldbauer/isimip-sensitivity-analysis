@@ -29,25 +29,26 @@ results_df = results_df[rmse_flter]
 r_flter = np.invert(results_df['r'].isna())
 results_df = results_df[r_flter]
 
-# ## remove nmae that are inf or nas
-# nmae_flter = np.invert(results_df['nmae'] == np.inf)
-# results_df = results_df[nmae_flter]
+## remove nmae that are inf or nas
+nmae_flter = results_df['nmae'] == np.inf
+results_df['nmae'][nmae_flter] = 1e2
 
 # get all lake names 
 lakes = results_df['lake'].unique()
 models = results_df['model'].unique()
 
-
+# add random dummy variable
+results_df['dummy'] = np.random.rand(results_df.shape[0], 1)
 
 # define parameters for analyses
 pars_gotm = ['wind_speed', 'swr', 'turb_param.k_min', 'bottom.h0b',
-             'turb_param.const_num', 'Kw']
+             'turb_param.const_num', 'Kw', 'dummy']
 pars_glm = ['wind_speed', 'swr', 'mixing.coef_mix_hyp', 'mixing.coef_mix_conv',
-            'mixing.coef_mix_turb', 'Kw']
+            'mixing.coef_mix_turb', 'Kw', 'dummy']
 pars_flake = ['wind_speed', 'swr', 'c_relax_C', 'fetch_lk',
-              'depth_bs_lk', 'Kw']
+              'depth_bs_lk', 'Kw', 'dummy']
 pars_simstrat = ['wind_speed', 'swr', 'a_seiche', 'hgeo',
-                 'cd', 'Kw']
+                 'cd', 'Kw', 'dummy']
 
 # model specific bounds
 bound_gotm = [[0.25, 1.5],
@@ -55,34 +56,38 @@ bound_gotm = [[0.25, 1.5],
               [1.4e-07, 10.0e-06],
               [0.025, 0.75],
               [0.000250, 0.000750],
-              [0.2310, 0.43]]
+              [0.2310, 0.43],
+              [0, 1]]
               
 bound_glm = [[0.25, 1.5],
              [0.7, 1.3],
              [0.1, 2],
              [0.1, 3],
              [0.35, 0.65],
-             [0.2310, 0.43]]
+             [0.2310, 0.43],
+             [0, 1]]
               
 bound_flake = [[0.25, 1.5],
                [0.7, 1.3],
                [0.0001, 0.01],
                [500, 3000],
                [2, 8],
-               [0.2310, 0.43]]
+               [0.2310, 0.43],
+               [0, 1]]
               
 bound_simstrat = [[0.25, 1.5],
                   [0.7, 1.3],
                   [0.0008, 0.003],
                   [0.0, 0.5],
                   [0.00075, 0.000325],
-                  [0.2310, 0.43]]
+                  [0.2310, 0.43],
+                  [0, 1]]
 
 #for par in pars:
 #    print(result_test[par].describe())
 
 # define stat metric
-stat = ['rmse', 'r', 'nse', 'bias', 'mae']
+stat = ['rmse', 'r', 'nse', 'bias', 'mae', 'nmae']
 
 
 # data frame for the results

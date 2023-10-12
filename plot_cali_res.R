@@ -104,8 +104,8 @@ count_best <- res |> group_by(lake) |>
   pivot_longer(-1) |> group_by(value, name) |> reframe(n = round(n()/73, 3)*100) |>
   rename(Metric = "name", Model = "value") |>
   pivot_wider(id_cols = "Model", names_from = "Metric", values_from = "n") |>
-  setNames(c("Model", "bias (k)", "mae (K)", "nmae (-)",
-             "NSE (-)", "r (-)", "RMSE (K)"))
+  setNames(c("Model", "bias", "mae", "nmae",
+             "NSE", "r", "RMSE"))
 
 # create a table that can be copy and pasted into the quarto document
 kable(count_best, format = "pipe")
@@ -124,10 +124,34 @@ res |> group_by(lake) |>
   ggplot() + geom_histogram(aes(x = n))
 
 
-# try to estimate best performing model based on lake characteristics
+##---------------- cluster analysis --------------------------------------------
+
+# cluster analysis to try to estimate best performing model based on lake
+# characteristics
+
+# z-score normalize data for single best model
+best_norm_a <- left_join(best_all_a, lake_meta,
+                         by = c("lake" = "Lake.Short.Name")) |>
+  ungroup() |> select(-4:-24) |>
+  mutate(across(9:21, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+
+# z-score normalize data for best models per lake
+best_norm <- best_all |>  ungroup() |>
+  mutate(across(4:24, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
 
+disttance <- filter(best_norm_a, best_met == "rmse") |> select(c(-1:-8)) |> dist()
+mydata.hclust <- hclust(disttance)
 
+dat <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$segments
+labs <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$labels |>
+  arrange(as.numeric(label)) |> cbind(filter(best_norm_a, best_met == "rmse")[, 2:3])
+
+  ggplot() + geom_segment(data = dat,
+                          aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
+              angle = -90, nudge_y = -1, hjust = 0) + theme_void() +
+    ylim(-15, 75)
 ##--------------- plots looking at the best performing parameter set -------------
 
 

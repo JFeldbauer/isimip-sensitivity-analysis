@@ -46,7 +46,7 @@ res_mip <- res |> group_by(lake, model, var) |>
 # for all measures
 res_mip |> pivot_longer(cols = 4:5) |>
   mutate(name = case_match(name,
-                           "par_d" ~ "delta",
+                           "par_d" ~ "\u03B4",
                            "par_S1" ~ "S1")) |> ggplot() +
   geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
   facet_wrap(~model, scales = "free_x") + theme_pubr(base_size = 17) +
@@ -91,16 +91,16 @@ gmiv <- function(x, frac = .75) {
 }
 
 # for each model, lake, and measure return the most sensitive parameters
-res_gip <- res |> group_by(lake, model, var) |>
+res_gip <- res |> group_by(lake, model, var) |> filter(delta != 0) |>
   reframe(par_d = paste0(names[delta %in% gmiv(delta)], collapse = ", "),
-          n_par_d = length(gmiv(delta)),
+          n_par_d = length(gmiv(delta, frac = 0.75)),
           par_S1 = paste0(names[S1 %in% gmiv(S1)], collapse = ", "),
-          n_par_S1 = length(gmiv(S1)))
+          n_par_S1 = length(gmiv(S1, frac = 0.75)))
 
 # plot distribution of most senstitive parameters over all lakes and models
 # for both measures
 delta_gip <- res_gip |> group_by(model, var) |> reframe(par = unlist(strsplit(par_d, ", ")),
-                                                   meas = "delta")
+                                                   meas = "\u03B4")
 S1_gip <- res_gip |> group_by(model, var) |> reframe(par = unlist(strsplit(par_S1, ", ")),
                                                 meas = "S1")
 rbind(delta_gip, S1_gip) |>
@@ -111,9 +111,14 @@ rbind(delta_gip, S1_gip) |>
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("count_sens.png", width = 14, height = 9)
+ggsave("count_sens.png", width = 14, height = 11)
 
-
+# plot distribution of number of sensitive parameters
+res_gip |> pivot_longer(c(5, 7)) |> mutate(name = case_match(name,
+                                                             "n_par_d" ~ "\u03B4",
+                                                             "n_par_S1" ~ "S1")) |>
+  ggplot() + geom_histogram(aes(x = value), stat = "count") + 
+  facet_grid(var~name)
 
 ##---------- plots for single models -----------------------------
 
