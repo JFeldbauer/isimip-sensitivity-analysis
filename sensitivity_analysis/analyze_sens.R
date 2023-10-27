@@ -23,6 +23,19 @@ res_cali <- read.csv("../data/results_lhc.csv")
 # load lake meta data
 meta <- read.csv("../data/Lake_meta.csv")
 
+# set sensitivity values that are smaller than the of the dummy variable
+# to zero
+res <- group_by(res, lake, model, var) |>
+  reframe(delta = ifelse((delta - delta_conf) <=
+                           (delta[names == "dummy"] + delta_conf[names == "dummy"]),
+                         0, delta),
+          S1 = ifelse((S1 - S1_conf) <=
+                        (S1[names == "dummy"] + S1_conf[names == "dummy"]),
+                         0, S1),
+          names = names,
+          delta_conf = delta_conf,
+          S1_conf = S1_conf)
+
 ##----------------- first plots ---------------------------------
 
 # plot delta sensitivity metrics for one lake
@@ -53,7 +66,7 @@ res_mip |> pivot_longer(cols = 4:5) |>
   grids() + xlab("parameter") +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("count_sens.png", width = 14, height = 9)
+ggsave("sens_single.png", width = 14, height = 9)
 
 # check how many times most sensitive parameter from delta and S1 differ
 sum(res_mip$par_d != res_mip$par_S1)
@@ -91,21 +104,35 @@ gmiv <- function(x, frac = .75) {
 }
 
 # for each model, lake, and measure return the most sensitive parameters
-res_gip <- res |> group_by(lake, model, var) |> filter(delta != 0) |>
-  reframe(par_d = paste0(names[delta %in% gmiv(delta)], collapse = ", "),
-          n_par_d = length(gmiv(delta, frac = 0.75)),
-          par_S1 = paste0(names[S1 %in% gmiv(S1)], collapse = ", "),
-          n_par_S1 = length(gmiv(S1, frac = 0.75)))
+res_gip <- res |> group_by(lake, model, var) |> filter(delta != 0 & S1 != 0) |>
+  reframe(par_d_05 = paste0(names[delta %in% gmiv(delta, .5)], collapse = ", "),
+          n_par_d_05 = length(names[delta %in% gmiv(delta, .5)]),
+          par_S1_05 = paste0(names[S1 %in% gmiv(S1, .5)], collapse = ", "),
+          n_par_S1_05 = length(names[S1 %in% gmiv(S1, .5)]),
+          par_d_75 = paste0(names[delta %in% gmiv(delta, .75)], collapse = ", "),
+          n_par_d_75 = length(names[delta %in% gmiv(delta, .75)]),
+          par_S1_75 = paste0(names[S1 %in% gmiv(S1, .75)], collapse = ", "),
+          n_par_S1_75 = length(names[S1 %in% gmiv(S1, .75)]),
+          par_d_1 = paste0(names[delta %in% gmiv(delta, 1)], collapse = ", "),
+          n_par_d_1 = length(names[delta %in% gmiv(delta, 1)]),
+          par_S1_1 = paste0(names[S1 %in% gmiv(S1, 1)], collapse = ", "),
+          n_par_S1_1 = length(names[S1 %in% gmiv(S1, 1)]))
 
 # plot distribution of most senstitive parameters over all lakes and models
 # for both measures
-delta_gip <- res_gip |> group_by(model, var) |> reframe(par = unlist(strsplit(par_d, ", ")),
+delta_gip <- res_gip |> pivot_longer(seq(4, 14, by = 2)) |>
+  filter(grepl("par_d_.*", name)) |>
+  mutate(frac = gsub(".*_", "", name)) |> 
+  group_by(model, var, frac) |> reframe(par = unlist(strsplit(value, ", ")),
                                                    meas = "\u03B4")
-S1_gip <- res_gip |> group_by(model, var) |> reframe(par = unlist(strsplit(par_S1, ", ")),
+S1_gip <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
+  filter(grepl("par_S1_.*", name)) |>
+  mutate(frac = gsub(".*_", "", name)) |> 
+  group_by(model, var, frac) |> reframe(par = unlist(strsplit(value, ", ")),
                                                 meas = "S1")
 rbind(delta_gip, S1_gip) |>
   ggplot() +
-  geom_histogram(aes(x = par, fill = meas), stat = "count", position = "dodge") +
+  geom_histogram(aes(x = par, fill = frac), stat = "count", position = "dodge") +
   facet_grid(var~model, scales = "free_x") + theme_pubr(base_size = 17) +
   grids() + xlab("parameter") +
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
@@ -119,6 +146,10 @@ res_gip |> pivot_longer(c(5, 7)) |> mutate(name = case_match(name,
                                                              "n_par_S1" ~ "S1")) |>
   ggplot() + geom_histogram(aes(x = value), stat = "count") + 
   facet_grid(var~name)
+
+# lakes where no parameter is sensitive
+res |> group_by(lake, var, model) |> filter(sum(delta) == 0 | sum(S1) == 0) |>
+  select(lake) |> unique() |> View()
 
 ##---------- plots for single models -----------------------------
 
