@@ -13,6 +13,7 @@ library(ggdendro)
 library(cluster)
 library(ggplot2)
 library(ggpubr)
+library(knitr)
 
 # the results from the calibration runs descriptions of the different columns
 # can be found in "data/results_lhc_description.csv"
@@ -25,17 +26,133 @@ lake_meta <- read.csv("data/Lake_meta.csv")
 # ggplot theme to be used
 thm <- theme_pubr(base_size = 15) + grids()
 
-##--------------- plots looking at the best performing parameter set -------------
 
 # extract best (rmse) parameter set for each lake and model
 best_rmse <- res |> group_by(lake = lake,
-                                   model = model) |>
-  slice_min(rmse)
+                             model = model) |>
+  slice_min(rmse) |> mutate(best_met = "rmse")
 # extract best (r) parameter set for each lake and model
 best_r <- res |> group_by(lake = lake,
-                                model = model) |>
-  slice_max(r)
+                          model = model) |>
+  slice_max(r) |> mutate(best_met = "r")
 
+# extract best (nse) parameter set for each lake and model
+best_nse <- res |> group_by(lake = lake,
+                            model = model) |>
+  slice_max(nse) |> mutate(best_met = "nse")
+
+# extract best (bias) parameter set for each lake and model
+best_bias <- res |> group_by(lake = lake,
+                             model = model) |>
+  slice_min(abs(bias)) |> mutate(best_met = "bias")
+
+# extract best (nmae) parameter set for each lake and model
+best_nmae <- res |> group_by(lake = lake,
+                             model = model) |>
+  slice_min(nmae) |> mutate(best_met = "nmae")
+
+# extract best (mae) parameter set for each lake and model
+best_mae <- res |> group_by(lake = lake,
+                            model = model) |>
+  slice_min(mae) |> mutate(best_met = "mae")
+
+
+# extract best (rmse) parameter set for each lake
+best_rmse_a <- res |> group_by(lake = lake) |>
+  slice_min(rmse) |> mutate(best_met = "rmse")
+# extract best (r) parameter set for each lake
+best_r_a <- res |> group_by(lake = lake) |>
+  slice_max(r) |> mutate(best_met = "r")
+
+# extract best (nse) parameter set for each lake
+best_nse_a <- res |> group_by(lake = lake) |>
+  slice_max(nse) |> mutate(best_met = "nse")
+
+# extract best (bias) parameter set for each lake
+best_bias_a <- res |> group_by(lake = lake) |>
+  slice_min(abs(bias)) |> mutate(best_met = "bias")
+
+# extract best (nmae) parameter set for each lake
+best_nmae_a <- res |> group_by(lake = lake) |>
+  slice_min(nmae) |> mutate(best_met = "nmae")
+
+# extract best (mae) parameter set for each lake
+best_mae_a <- res |> group_by(lake = lake) |>
+  slice_min(mae) |> mutate(best_met = "mae")
+
+# data frame with all metrics for single best model per lake
+best_all_a <- rbind(best_bias_a, best_mae_a, best_nmae_a,
+                    best_nse_a, best_r_a, best_rmse_a)
+
+# data frame with all metrics for best set per lake and per model
+best_all <- rbind(best_bias, best_mae, best_nmae,
+                  best_nse, best_r, best_rmse)
+
+
+##---------- look at best performing model per lake and metric -----------------
+
+# calculate fraction of lakes for which each model performs best across the
+# different metrics
+
+count_best <- res |> group_by(lake) |>
+  reframe(rmse = model[which.min(rmse)],
+          nse = model[which.max(nse)],
+          r = model[which.max(r)],
+          bias = model[which.max(abs(bias))],
+          mae = model[which.min(mae)],
+          nmae = model[which.min(nmae)]) |>
+  pivot_longer(-1) |> group_by(value, name) |> reframe(n = round(n()/73, 3)*100) |>
+  rename(Metric = "name", Model = "value") |>
+  pivot_wider(id_cols = "Model", names_from = "Metric", values_from = "n") |>
+  setNames(c("Model", "bias", "mae", "nmae",
+             "NSE", "r", "RMSE"))
+
+# create a table that can be copy and pasted into the quarto document
+kable(count_best, format = "pipe")
+
+# look at the distribution of number of different best performing models over the
+# different metrics
+
+res |> group_by(lake) |>
+  reframe(rmse = model[which.min(rmse)],
+          nse = model[which.max(nse)],
+          r = model[which.max(r)],
+          bias = model[which.max(abs(bias))],
+          mae = model[which.min(mae)],
+          nmae = model[which.min(nmae)]) |>
+  pivot_longer(-1) |> group_by(lake) |> reframe(n = length(unique(value))) |>
+  ggplot() + geom_histogram(aes(x = n))
+
+
+##---------------- cluster analysis --------------------------------------------
+
+# cluster analysis to try to estimate best performing model based on lake
+# characteristics
+
+# z-score normalize data for single best model
+best_norm_a <- left_join(best_all_a, lake_meta,
+                         by = c("lake" = "Lake.Short.Name")) |>
+  ungroup() |> select(-4:-24) |>
+  mutate(across(9:21, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+
+# z-score normalize data for best models per lake
+best_norm <- best_all |>  ungroup() |>
+  mutate(across(4:24, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+
+
+disttance <- filter(best_norm_a, best_met == "rmse") |> select(c(-1:-8)) |> dist()
+mydata.hclust <- hclust(disttance)
+
+dat <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$segments
+labs <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$labels |>
+  arrange(as.numeric(label)) |> cbind(filter(best_norm_a, best_met == "rmse")[, 2:3])
+
+  ggplot() + geom_segment(data = dat,
+                          aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
+              angle = -90, nudge_y = -1, hjust = 0) + theme_void() +
+    ylim(-15, 75)
+##--------------- plots looking at the best performing parameter set -------------
 
 
 
@@ -53,7 +170,7 @@ p_dist_lake_model <- best_rmse |> slice(which.min(rmse)) |>
   facet_wrap(~model) + theme(legend.position = "none")
 
 
-# distribution of the single best model per lake
+# distribution of the single best model per lake according to rmse
 p_dist_lake <- best_rmse |> group_by(lake) |> filter(rmse == min(rmse)) |>
   ggplot() +
   geom_histogram(aes(x = rmse, y = ..density..),
@@ -74,11 +191,22 @@ p_pie <- best_rmse |> group_by(lake) |> slice(which.min(rmse)) |> group_by(model
 
 # combine the two previous plots
 
-png("best_fit.png", width = 11, height = 7, units = "in", res = 300)
+png("best_fit_rmse.png", width = 11, height = 7, units = "in", res = 300)
 subvp <- viewport(width = 0.35, height = 0.35, x = 0.8, y = 0.75)
 p_dist_lake
 print(p_pie, vp = subvp)
 dev.off()
+
+
+# distribution of the single best model per lake for all 6 metrics
+p_dist_lake_a <- best_all_a |> pivot_longer(4:9) |> filter(best_met == name) |>
+  ggplot() +
+  geom_histogram(aes(x = value, y = ..count..),
+                 bins = 20, col = 1) +
+  thm + xlab("") +
+  facet_wrap(~best_met, scales = "free")
+
+ggsave("best_fit.pdf", p_dist_lake_a, width = 13, height = 7)
 
 # a map of the lakes with the location color coded according to the best
 # performing model
