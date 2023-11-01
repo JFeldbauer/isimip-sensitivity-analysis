@@ -14,6 +14,7 @@ library(gridExtra)
 library(ggExtra)
 library(ggdendro)
 
+
 ##-------------- read in data ----------------------------------------------
 
 # load results of sensitivity analysis
@@ -130,9 +131,9 @@ S1_gip <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
   mutate(frac = gsub(".*_", "", name)) |> 
   group_by(model, var, frac) |> reframe(par = unlist(strsplit(value, ", ")),
                                                 meas = "S1")
-rbind(delta_gip, S1_gip) |>
+rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   ggplot() +
-  geom_histogram(aes(x = par, fill = frac), stat = "count", position = "dodge") +
+  geom_histogram(aes(x = par, fill = meas), stat = "count", position = "dodge") +
   facet_grid(var~model, scales = "free_x") + theme_pubr(base_size = 17) +
   grids() + xlab("parameter") +
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
@@ -140,16 +141,34 @@ rbind(delta_gip, S1_gip) |>
 
 ggsave("count_sens.png", width = 14, height = 11)
 
-# plot distribution of number of sensitive parameters
-res_gip |> pivot_longer(c(5, 7)) |> mutate(name = case_match(name,
-                                                             "n_par_d" ~ "\u03B4",
-                                                             "n_par_S1" ~ "S1")) |>
-  ggplot() + geom_histogram(aes(x = value), stat = "count") + 
-  facet_grid(var~name)
+## plot distribution of number of sensitive parameters
+delta_gip_l <- res_gip |> pivot_longer(seq(4, 14, by = 2)) |>
+  filter(grepl("par_d_.*", name)) |>
+  mutate(frac = gsub(".*_", "", name)) |> 
+  group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
+                                        meas = "\u03B4")
+S1_gip_l <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
+  filter(grepl("par_S1_.*", name)) |>
+  mutate(frac = gsub(".*_", "", name)) |> 
+  group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
+                                        meas = "S1")
+rbind(delta_gip_l, S1_gip_l) |> group_by(model, var, frac, lake, meas) |>
+  reframe(n = n()) |> mutate(frac = case_match(frac,
+                                               "05" ~ "50%",
+                                               "1" ~ "100%",
+                                               "75" ~ "75%")) |>
+  ggplot() + geom_histogram(aes(x = n,  fill = frac),
+                            stat = "count", position = "dodge") + 
+  facet_grid(var~model) + theme_pubr(base_size = 17) +
+  scale_fill_viridis_d("Fraction", option = "D")
 
 # lakes where no parameter is sensitive
-res |> group_by(lake, var, model) |> filter(sum(delta) == 0 | sum(S1) == 0) |>
-  select(lake) |> unique() |> View()
+res |> group_by(lake, var, model) |>
+  mutate(no_sens = all(delta[names != "dummy"] <= delta[names == "dummy"]) ||
+           all(S1[names != "dummy"] <= S1[names == "dummy"])) |>
+  filter(no_sens) |> select(lake) |> unique() |> View()
+
+# only for nmae there are cases where no parameter is sensitive
 
 ##---------- plots for single models -----------------------------
 
