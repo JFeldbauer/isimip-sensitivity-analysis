@@ -19,6 +19,8 @@ library(ggdendro)
 
 # load results of sensitivity analysis
 res <- read.csv("res_sens.csv")
+# save oiriginal results for plots
+res_o <- res
 # load results of latin hypercube calibration
 res_cali <- read.csv("../data/results_lhc.csv")
 # load lake meta data
@@ -153,20 +155,28 @@ S1_gip_l <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
   group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
                                         meas = "S1")
 rbind(delta_gip_l, S1_gip_l) |> group_by(model, var, frac, lake, meas) |>
-  reframe(n = n()) |> mutate(frac = case_match(frac,
-                                               "05" ~ "50%",
-                                               "1" ~ "100%",
-                                               "75" ~ "75%")) |>
+  reframe(n = n()) |> mutate(frac = factor(frac, levels = c("1", "75", "05"),
+                                           labels = c("100%", "75%", "50%"))) |>
   ggplot() + geom_histogram(aes(x = n,  fill = frac),
                             stat = "count", position = "dodge") + 
   facet_grid(var~model) + theme_pubr(base_size = 17) +
-  scale_fill_viridis_d("Fraction", option = "D")
+  scale_fill_viridis_d("Fraction of total sum", option = "D") +
+  xlab("Number of parameters contributing")
 
 # lakes where no parameter is sensitive
 res |> group_by(lake, var, model) |>
   mutate(no_sens = all(delta[names != "dummy"] <= delta[names == "dummy"]) ||
            all(S1[names != "dummy"] <= S1[names == "dummy"])) |>
   filter(no_sens) |> select(lake) |> unique() |> View()
+
+# correlation between S1 and delta
+res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
+                alpha = 0.666) +
+  geom_abline(aes(intercept = 0, slope = 1), col = "grey42", lty = "dashed") +
+  geom_point() +
+  facet_grid(var ~ names) + theme_pubr(base_size = 17) + grids() +
+  xlim(0, 1) +  ylim(0, 1)
+
 
 # only for nmae there are cases where no parameter is sensitive
 
@@ -180,6 +190,8 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   
   sens <- res_sens |> filter(lake == l & model == m & var == smet)
   pars <- unique(sens$names)
+  pars_s <- pars
+  pars <- pars[pars!="dummy"]
   log <- rep(FALSE, length(pars))
   log[pars == "turb_param.k_min"] <- TRUE
   
@@ -224,11 +236,20 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   
   pl2 <- rep(list(NULL), (length(pars)-1)^2)
   
-  ps1 <- sens |> ggplot() +
+  ps1 <- sens |> filter(names != "dummy") |> ggplot() +
     geom_col(aes(y = delta, x = names), fill = "#45B2DD") +
     geom_errorbar(aes(x = names, ymin = delta - delta_conf/2,
                       ymax = delta + delta_conf),
                   col = "#0D3D20", lwd = 1.25, width=.5) +
+    geom_hline(data = filter(sens, names == "dummy"),
+               aes(yintercept = delta), col = "grey42",
+               lty = "dashed", linewidth = 1.25) + 
+    geom_hline(data = filter(sens, names == "dummy"),
+               aes(yintercept = delta + delta_conf), col = "grey42",
+               lty = "dashed", linewidth = 1) + 
+    geom_hline(data = filter(sens, names == "dummy"),
+               aes(yintercept = delta - delta_conf), col = "grey42",
+               lty = "dashed", linewidth = 1) + 
     theme_pubr() + grids() +
     theme(axis.text.x=element_text(angle = -65,
                                    hjust = 0, size = 9),
@@ -238,11 +259,20 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
                                l = 10)) + # Left margin
     xlab("") + ylab("")
     
-  ps2 <- sens |> ggplot() +
+  ps2 <- sens |> filter(names != "dummy") |> ggplot() +
       geom_col(aes(y = S1, x = names), fill = "#72035F") +
       geom_errorbar(aes(x = names, ymin = S1 - S1_conf/2,
                         ymax = S1 + S1_conf),
                     col = "#03DE67", lwd = 1.25, width=.5) +
+    geom_hline(data = filter(sens, names == "dummy"),
+               aes(yintercept = S1), col = "grey42",
+               lty = "dashed", linewidth = 1.25) + 
+    geom_hline(data = filter(sens, names == "dummy"),
+               aes(yintercept = S1 + S1_conf), col = "grey42",
+               lty = "dashed", linewidth = 1) + 
+    geom_hline(data = filter(sens, names == "dummy"),
+               aes(yintercept = S1 - S1_conf), col = "grey42",
+               lty = "dashed", linewidth = 1) + 
       theme_pubr() + grids() +
     theme(axis.text.x=element_text(angle = -65,
                                    hjust = 0, size = 9),
@@ -278,7 +308,7 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
     }
   }
 
-  pl2[[21]] <- as_ggplot(text_grob("Delta"))
+  pl2[[21]] <- as_ggplot(text_grob("\u03B4"))
   pl2[[16]] <- as_ggplot(text_grob("S1"))
   pl2[[22]] <- ps1
   pl2[[17]] <- ps2
@@ -290,10 +320,14 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   
 }
 
-p_gtm_kivu <- my_sens_plot(m = "GOTM", l = "Kivu", res_cali = res_cali, res_sens = res)
-p_glm_biel <- my_sens_plot(m = "GLM", l = "Biel", res_cali = res_cali, res_sens = res)
-p_fl_stech <- my_sens_plot(m = "FLake", l = "Stechlin", res_cali = res_cali, res_sens = res)
-p_sim_erk <- my_sens_plot(m = "Simstrat", l = "Erken", res_cali = res_cali, res_sens = res)
+p_gtm_kivu <- my_sens_plot(m = "GOTM", l = "Kivu", res_cali = res_cali,
+                           res_sens = res_o)
+p_glm_biel <- my_sens_plot(m = "GLM", l = "Biel", res_cali = res_cali,
+                           res_sens = res_o)
+p_fl_stech <- my_sens_plot(m = "FLake", l = "Stechlin", res_cali = res_cali,
+                           res_sens = res_o)
+p_sim_erk <- my_sens_plot(m = "Simstrat", l = "Erken", res_cali = res_cali,
+                          res_sens = res_o)
 
 
 
