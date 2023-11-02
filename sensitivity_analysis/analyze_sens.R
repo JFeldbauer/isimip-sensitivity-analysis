@@ -159,9 +159,11 @@ rbind(delta_gip_l, S1_gip_l) |> group_by(model, var, frac, lake, meas) |>
                                            labels = c("100%", "75%", "50%"))) |>
   ggplot() + geom_histogram(aes(x = n,  fill = frac),
                             stat = "count", position = "dodge") + 
-  facet_grid(var~model) + theme_pubr(base_size = 17) +
+  facet_grid(var~model) + theme_pubr(base_size = 17) + grids() +
   scale_fill_viridis_d("Fraction of total sum", option = "D") +
   xlab("Number of parameters contributing")
+
+ggsave("count_imp_par.png", width = 14, height = 11)
 
 # lakes where no parameter is sensitive
 res |> group_by(lake, var, model) |>
@@ -179,6 +181,17 @@ res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
 
 
 # only for nmae there are cases where no parameter is sensitive
+
+
+##------------------- look at sensitivity of wind speed scaling ---------------
+
+res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(delta = ifelse(delta > 1, 0, delta)) |>
+  filter(names == "wind_speed") |> ggplot() +
+  geom_point(aes(x = elevation.m, y = mean.depth.m, col = delta)) + facet_grid(model~var) +
+  scale_x_log10() + scale_y_log10() + scale_color_viridis_c(option = "D")
+
+
 
 ##---------- plots for single models -----------------------------
 
