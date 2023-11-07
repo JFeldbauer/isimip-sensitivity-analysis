@@ -132,11 +132,12 @@ res |> group_by(lake) |>
 # z-score normalize data for single best model
 best_norm_a <- left_join(best_all_a, lake_meta,
                          by = c("lake" = "Lake.Short.Name")) |>
-  ungroup() |> select(-4:-24) |>
-  mutate(across(9:21, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+  ungroup() |>
+  mutate(across(4:24, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
 # z-score normalize data for best models per lake
-best_norm <- best_all |>  ungroup() |>
+best_norm <- left_join(best_all, lake_meta,
+                       by = c("lake" = "Lake.Short.Name")) |>  ungroup() |>
   mutate(across(4:24, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
 
@@ -152,8 +153,8 @@ labs <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$labels |>
     geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
               angle = -90, nudge_y = -1, hjust = 0) + theme_void() +
     ylim(-15, 75)
-##--------------- plots looking at the best performing parameter set -------------
 
+##--------------- plots looking at the best performing parameter set -------------
 
 
 # append lake meta data to the best parameter sets
