@@ -1,0 +1,4 @@
+column_name,description
+lake,lake name
+depth,depth below the surface (m)
+area,area at the corresponding depth (m^2)
