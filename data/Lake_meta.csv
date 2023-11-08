@@ -1,7 +1,7 @@
 Lake.Name,Lake.Short.Name,Lake.Name.Folder,Reservoir.or.lake.,Country,latitude.dec.deg,longitude.dec.deg,elevation.m,mean.depth.m,max.depth.m,lake.area.sqkm,Average.Secchi.disk.depth.m,Light.extinction.coefficient.m,Duration,months_meas,reldepth_median,months_median,depth_meas
 Allequash Lake,Allequash,allequash,lake,USA,46.04,-89.62,494,2.9,8,1.64,3.2,NA,33.5534246575342,12,0.375,7,14
 Alqueva Reservoir,Alqueva,alqueva,reservoir,Portugal,38.2,-7.49,152,16.6,92,250,3.15,0.69,5.34520547945205,12,0.0652173913043478,6,14
-Lake Annie,Annie,annie,lake,USA,27.21,-81.35,33.7,NA,20.7,0.36,NA,NA,10.1068493150685,12,0.434782608695652,7,19
+Lake Annie,Annie,annie,lake,USA,27.21,-81.35,33.7,8.57,20.7,0.36,NA,NA,10.1068493150685,12,0.434782608695652,7,19
 Lake Argyle,Argyle,argyle,reservoir,Australia,-16.31,128.68,100,10.1,51,980,NA,0.89,1.53972602739726,7,0.27843137254902,8,1100
 Lake Biel,Biel,biel,lake,Switzerland,47.08,7.16,429,30,74,39.3,NA,0.51,42.8630136986301,12,0.27027027027027,6,13
 Big Muskellunge Lake,BigMuskellunge,big-muskellunge,lake,USA,46.02,-89.61,500,7.5,21.3,3.63,6.6,NA,33.4438356164384,12,0.422535211267606,7,24
@@ -27,7 +27,7 @@ Lake Kivu,Kivu,kivu,lake,Rwanda/DR Congo,-1.73,29.24,1463,240,485,2700,5.21,0.27
 Klicava Reservoir,Klicava,klicava,reservoir,Czechia,50.07,13.93,294.6,13.1,35,0.55,5.5,NA,22.5643835616438,12,0.00857142857142857,7,116
 Lake Kuivajarvi,Kuivajarvi,kuivajarvi,lake,Finland,60.47,23.51,130,6.3,13.2,0.62,NA,0.6,4.96438356164384,12,0.284090909090909,7,16
 Lake Langtjern,Langtjern,langtjern,lake,Norway,60.37,9.73,510,2,12,0.23,1.4,2.25,3.78904109589041,12,0.333333333333333,7,6
-Laramie Lake,Laramie,laramie,lake,USA,40.62,-105.84,2843.8,NA,6.4,0.14,0.6,NA,1.82739726027397,5,0.546875,7,33
+Laramie Lake,Laramie,laramie,lake,USA,40.62,-105.84,2843.8,0.37,6.4,0.14,0.6,NA,1.82739726027397,5,0.546875,7,33
 Lower Lake Zurich,LowerLakeZurich,lower-zurich,lake,Switzerland,47.28,8.58,406,49,136,67,NA,0.39,35.9205479452055,12,0.220588235294118,6,19
 Lake Mendota,Mendota,mendota,lake,USA,43.1,-89.41,258.5,12.8,25.3,39.61,3,NA,19.4904109589041,12,0.474308300395257,7,70
 Lake Monona,Monona,monona,lake,USA,43.06,-89.36,257,8.2,22.5,13.6,2.4,NA,19.5068493150685,12,0.466666666666667,7,69
@@ -50,7 +50,7 @@ Lake Stechlin,Stechlin,stechlin,lake,Germany,53.17,13.03,59.8,23.2,69.5,2.23,8.6
 Lake Sunapee,Sunapee,sunapee,lake,USA,43.23,-72.5,333,11.4,34,16.55,8.5,NA,27.3041095890411,12,0.176470588235294,8,61
 Lake Tahoe,Tahoe,tahoe,reservoir,USA,39.09,-120.03,1897,304.8,501,490,19.9,NA,6.42739726027397,12,0.420958083832335,6,67177
 Lake Tarawera,Tarawera,tarawera,lake,New Zealand,-38.21,176.43,300,50,87.5,41.3,8.34,0.18,19.6164383561644,12,0.468571428571429,6,84
-Toolik Lake,Toolik,toolik,lake,USA,68.63,-149.6,720,7,25,NA,4.6,NA,31.227397260274,5,0.36,7,191
+Toolik Lake,Toolik,toolik,lake,USA,68.63,-149.6,720,7,25,1.49,4.6,NA,31.227397260274,5,0.36,7,191
 Trout Lake,Trout,trout-lake,lake,USA,46.03,-89.67,491.8,14.6,35.7,15.65,4.7,NA,33.5808219178082,12,0.448179271708683,7,42
 Trout Bog,TroutBog,trout-bog,lake,USA,46.04,-89.69,495,5.6,7.9,0,1.1,NA,33.3369863013699,11,0.379746835443038,7,14
 Two Sisters Lake,TwoSisters,two-sisters,lake,USA,45.77,-89.53,481,9.14,19.2,2.91,17.75,NA,25.0082191780822,8,0.47625,8,11
