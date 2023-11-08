@@ -129,31 +129,49 @@ res |> group_by(lake) |>
 # cluster analysis to try to estimate best performing model based on lake
 # characteristics
 
+# get average Kw values from all best measures for each lake
+kw <- best_all |> group_by(lake) |> reframe(kw = mean(Kw))
+
 # z-score normalize data for single best model
 best_norm_a <- left_join(best_all_a, lake_meta,
                          by = c("lake" = "Lake.Short.Name")) |>
+  left_join(kw) |>
   ungroup() |>
-  mutate(across(4:24, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+  mutate(across(c(4:24, 30:43),
+                function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
 # z-score normalize data for best models per lake
 best_norm <- left_join(best_all, lake_meta,
-                       by = c("lake" = "Lake.Short.Name")) |>  ungroup() |>
-  mutate(across(4:24, function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+                       by = c("lake" = "Lake.Short.Name")) |>
+  left_join(kw) |> ungroup() |>
+  mutate(across(c(4:24, 30:43),
+                function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
+filter(best_norm_a, best_met == "rmse") |>
+  select(c(2, 28, 30:40, 43)) |> select(c(-1,-2,-9, -10)) |>
+  cor() |> corrplot::corrplot()
 
-disttance <- filter(best_norm_a, best_met == "rmse") |> select(c(-1:-8)) |> dist()
+disttance <- filter(best_norm_a, best_met == "rmse") |>
+  select(c(2, 28, 30:40, 43)) |> select(c(-1,-2,-9, -10)) |>
+  #mutate(model = factor(model, model, model),
+  #       Reservoir.or.lake. = factor(Reservoir.or.lake.,
+  #                                   Reservoir.or.lake.,
+  #                                   Reservoir.or.lake.)) |>
+  dist()
 mydata.hclust <- hclust(disttance)
 
 dat <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$segments
 labs <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$labels |>
   arrange(as.numeric(label)) |> cbind(filter(best_norm_a, best_met == "rmse")[, 2:3])
 
-  ggplot() + geom_segment(data = dat,
-                          aes(x=x, y=y, xend=xend, yend=yend)) +
-    geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
-              angle = -90, nudge_y = -1, hjust = 0) + theme_void() +
-    ylim(-15, 75)
+ggplot() + geom_segment(data = dat,
+                        aes(x=x, y=y, xend=xend, yend=yend)) +
+  geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
+            angle = -90, nudge_y = -1, hjust = 0) + theme_void() +
+  theme(plot.margin = margin(b = 10)) + ylim(-15, 75)
 
+# model as glm of the factors? 
+  
 ##--------------- plots looking at the best performing parameter set -------------
 
 
