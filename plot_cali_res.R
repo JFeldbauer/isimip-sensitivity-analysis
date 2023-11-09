@@ -14,6 +14,8 @@ library(cluster)
 library(ggplot2)
 library(ggpubr)
 library(knitr)
+library(nnet)
+
 
 # the results from the calibration runs descriptions of the different columns
 # can be found in "data/results_lhc_description.csv"
@@ -212,10 +214,13 @@ exp(coef(test))
 pdat <- expand_grid(kw = seq(min(dat$kw), max(dat$kw), length.out = 5),
                     #kw = median(dat$kw),
                     elevation.m = mean(dat$elevation.m),
-                    max.depth.m = seq(min(dat$max.depth.m),
-                                      max(dat$max.depth.m), length.out = 20),
-                    #max.depth.m = median(dat$max.depth.m),
-                    lake.area.sqkm = mean(dat$lake.area.sqkm),
+                    #max.depth.m = seq(min(dat$max.depth.m),
+                    #                  max(dat$max.depth.m), length.out = 20),
+                    max.depth.m = median(dat$max.depth.m),
+                    #lake.area.sqkm = mean(dat$lake.area.sqkm),
+                    lake.area.sqkm = seq(min(dat$lake.area.sqkm),
+                                         max(dat$lake.area.sqkm),
+                                         length.out = 20),
                     latitude.dec.deg = mean(dat$latitude.dec.deg),
                     longitude.dec.deg = mean(dat$longitude.dec.deg),
                     crv = levels(dat$crv))
@@ -224,12 +229,12 @@ pdat <- expand_grid(kw = seq(min(dat$kw), max(dat$kw), length.out = 5),
 res_m <- predict(test, newdata = pdat, "probs")
 res_m <- cbind(res_m, pdat) |> pivot_longer(1:4)
 
-res_m |> ggplot() + geom_line(aes(x = max.depth.m, y = value, col = name)) +
+res_m |> ggplot() + geom_line(aes(x = lake.area.sqkm, y = value, col = name)) +
   facet_grid(crv~kw)
 
 ## estimate performance metric based upon lake characteristics
 
-ggplot(dat) + geom_point(aes(x = kw, y = max.depth.m, col = model, pch = crv)) +
+ggplot(dat) + geom_point(aes(x = kw, y = lake.area.sqkm, col = model, pch = crv)) +
   scale_y_log10() + scale_x_log10()
 
 ##--------------- plots looking at the best performing parameter set -------------
