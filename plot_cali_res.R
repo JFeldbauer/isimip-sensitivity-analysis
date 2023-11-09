@@ -132,27 +132,50 @@ res |> group_by(lake) |>
 # get average Kw values from all best measures for each lake
 kw <- best_all |> group_by(lake) |> reframe(kw = mean(Kw))
 
+# look at hypsographs and try to use them to classify lakes
+hyps <- read.csv("data/lake_hypsographs.csv")
+
+
+hyps |> group_by(lake) |> mutate(area = area/max(area),
+                                 level = 1 - depth/max(depth)) |>
+  mutate(crv = case_when(mean(area - level < -0.025) >= 0.66 ~ "concave",
+                         mean(area - level > 0.025) >= 0.66 ~ "convex",
+                          .default = "neither")) |>
+  ggplot() + geom_line(aes(y = area, x = level, col = crv),
+                       lwd = 1.5) +
+  facet_wrap(~lake) + coord_flip() +
+  geom_abline(aes(slope = 1, intercept = 0), col = "black", lty = 15)
+
+hyps_type <- hyps |> group_by(lake) |> mutate(area = area/max(area),
+                                              level = 1 - depth/max(depth)) |>
+  mutate(crv = case_when(mean(area - level < -0.025) >= 0.66 ~ "concave",
+                         mean(area - level > 0.025) >= 0.66 ~ "convex",
+                         .default = "neither")) |>
+  mutate(crv = factor(crv, crv, crv)) |>
+  select(lake, crv) |>
+  group_by(lake) |> slice_head(n = 1) |> ungroup()
+
 # z-score normalize data for single best model
 best_norm_a <- left_join(best_all_a, lake_meta,
                          by = c("lake" = "Lake.Short.Name")) |>
-  left_join(kw) |>
-  ungroup() |>
+  left_join(kw) |> left_join(hyps_type) |>
+  ungroup() |> mutate(across(c(32:35), function(x)x^(1/3))) |>
   mutate(across(c(4:24, 30:43),
                 function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
 # z-score normalize data for best models per lake
 best_norm <- left_join(best_all, lake_meta,
                        by = c("lake" = "Lake.Short.Name")) |>
-  left_join(kw) |> ungroup() |>
+  left_join(kw) |> left_join(hyps_type) |> ungroup() |>
   mutate(across(c(4:24, 30:43),
                 function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
 filter(best_norm_a, best_met == "rmse") |>
-  select(c(2, 28, 30:40, 43)) |> select(c(-1,-2,-9, -10)) |>
+  select(c(2, 28, 30:40, 43:43)) |> select(c(-1,-2,-9, -10)) |>
   cor() |> corrplot::corrplot()
 
 disttance <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(2, 28, 30:40, 43)) |> select(c(-1,-2,-9, -10)) |>
+  select(c(2, 28, 30:40, 43:44)) |> select(c(-1,-2,-9, -10)) |>
   #mutate(model = factor(model, model, model),
   #       Reservoir.or.lake. = factor(Reservoir.or.lake.,
   #                                   Reservoir.or.lake.,
@@ -168,10 +191,47 @@ ggplot() + geom_segment(data = dat,
                         aes(x=x, y=y, xend=xend, yend=yend)) +
   geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
             angle = -90, nudge_y = -1, hjust = 0) + theme_void() +
-  theme(plot.margin = margin(b = 10)) + ylim(-15, 75)
+  theme(plot.margin = margin(b = 10)) + ylim(-15, 60)
 
-# model as glm of the factors? 
+# fit multinomial log-linear model 
+dat <- left_join(best_rmse_a, lake_meta,
+                 by = c("lake" = "Lake.Short.Name")) |>
+  left_join(kw) |> left_join(hyps_type) |>
+  mutate(model = factor(model, model, model),
+         Reservoir.or.lake. = factor(Reservoir.or.lake.,
+         Reservoir.or.lake.,
+         Reservoir.or.lake.)) |> ungroup()
+
+dat$model <- relevel(dat$model, ref = "Simstrat")
+test <- multinom(model ~ kw + elevation.m + max.depth.m +
+                   lake.area.sqkm + latitude.dec.deg + longitude.dec.deg + crv,
+                 data = dat)
+summary(test)
+exp(coef(test))
+
+pdat <- expand_grid(kw = seq(min(dat$kw), max(dat$kw), length.out = 5),
+                    #kw = median(dat$kw),
+                    elevation.m = mean(dat$elevation.m),
+                    max.depth.m = seq(min(dat$max.depth.m),
+                                      max(dat$max.depth.m), length.out = 20),
+                    #max.depth.m = median(dat$max.depth.m),
+                    lake.area.sqkm = mean(dat$lake.area.sqkm),
+                    latitude.dec.deg = mean(dat$latitude.dec.deg),
+                    longitude.dec.deg = mean(dat$longitude.dec.deg),
+                    crv = levels(dat$crv))
   
+
+res_m <- predict(test, newdata = pdat, "probs")
+res_m <- cbind(res_m, pdat) |> pivot_longer(1:4)
+
+res_m |> ggplot() + geom_line(aes(x = max.depth.m, y = value, col = name)) +
+  facet_grid(crv~kw)
+
+## estimate performance metric based upon lake characteristics
+
+ggplot(dat) + geom_point(aes(x = kw, y = max.depth.m, col = model, pch = crv)) +
+  scale_y_log10() + scale_x_log10()
+
 ##--------------- plots looking at the best performing parameter set -------------
 
 
