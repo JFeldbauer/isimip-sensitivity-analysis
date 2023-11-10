@@ -76,10 +76,12 @@ best_bias_a <- res |> group_by(lake = lake) |>
 
 # extract best (nmae) parameter set for each lake
 best_nmae_a <- res |> group_by(lake = lake) |>
-  slice_min(nmae) |> mutate(best_met = "nmae")
+  filter(nmae != 0 & !is.infinite(nmae)) |>
+  slice_min(nmae, na_rm = TRUE) |> mutate(best_met = "nmae")
 
 # extract best (mae) parameter set for each lake
 best_mae_a <- res |> group_by(lake = lake) |>
+  filter(nmae != 0 & !is.infinite(nmae)) |>
   slice_min(mae) |> mutate(best_met = "mae")
 
 # data frame with all metrics for single best model per lake
@@ -137,17 +139,7 @@ kw <- best_all |> group_by(lake) |> reframe(kw = mean(Kw))
 # look at hypsographs and try to use them to classify lakes
 hyps <- read.csv("data/lake_hypsographs.csv")
 
-
-hyps |> group_by(lake) |> mutate(area = area/max(area),
-                                 level = 1 - depth/max(depth)) |>
-  mutate(crv = case_when(mean(area - level < -0.025) >= 0.66 ~ "concave",
-                         mean(area - level > 0.025) >= 0.66 ~ "convex",
-                          .default = "neither")) |>
-  ggplot() + geom_line(aes(y = area, x = level, col = crv),
-                       lwd = 1.5) +
-  facet_wrap(~lake) + coord_flip() +
-  geom_abline(aes(slope = 1, intercept = 0), col = "black", lty = 15)
-
+# categorize lake by hypsography in three groups: convex, concave, neither
 hyps_type <- hyps |> group_by(lake) |> mutate(area = area/max(area),
                                               level = 1 - depth/max(depth)) |>
   mutate(crv = case_when(mean(area - level < -0.025) >= 0.66 ~ "concave",
@@ -157,44 +149,118 @@ hyps_type <- hyps |> group_by(lake) |> mutate(area = area/max(area),
   select(lake, crv) |>
   group_by(lake) |> slice_head(n = 1) |> ungroup()
 
+# plot all hypsographs and their hypsographic type
+hyps |> left_join(hyps_type) |> group_by(lake) |>
+  mutate(area = area/max(area),
+         level = 1 - depth/max(depth)) |>ungroup() |>
+  ggplot() + geom_line(aes(y = area, x = level, col = crv),
+                       lwd = 1.5) +
+  facet_wrap(~lake) + coord_flip() +
+  geom_abline(aes(slope = 1, intercept = 0), col = "black", lty = 15) +
+  theme_minimal(base_size = 14)
+
+ggsave("hypso_class.png", width = 13, height = 13, bg = "white")
+
 # z-score normalize data for single best model
 best_norm_a <- left_join(best_all_a, lake_meta,
                          by = c("lake" = "Lake.Short.Name")) |>
   left_join(kw) |> left_join(hyps_type) |>
-  ungroup() |> mutate(across(c(32:35), function(x)x^(1/3))) |>
+  ungroup() |> mutate(across(c(32:35), function(x)(x - min(x) + 1e-4)^(1/3))) |>
   mutate(across(c(4:24, 30:43),
                 function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
-# z-score normalize data for best models per lake
-best_norm <- left_join(best_all, lake_meta,
-                       by = c("lake" = "Lake.Short.Name")) |>
-  left_join(kw) |> left_join(hyps_type) |> ungroup() |>
-  mutate(across(c(4:24, 30:43),
-                function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
-
-filter(best_norm_a, best_met == "rmse") |>
-  select(c(2, 28, 30:40, 43:43)) |> select(c(-1,-2,-9, -10)) |>
-  cor() |> corrplot::corrplot()
-
+# calculate distance for hirarchical clustering
 disttance <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(2, 28, 30:40, 43:44)) |> select(c(-1,-2,-9, -10)) |>
-  #mutate(model = factor(model, model, model),
-  #       Reservoir.or.lake. = factor(Reservoir.or.lake.,
-  #                                   Reservoir.or.lake.,
-  #                                   Reservoir.or.lake.)) |>
+  select(c(2, 28, 30:40, 43:44)) |> select(c(-1,-2,-9, -10, -11)) |>
   dist()
 mydata.hclust <- hclust(disttance)
 
+# extract data for plotting with ggplot2
 dat <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$segments
 labs <- dendro_data(as.dendrogram(mydata.hclust), type = "rectangle")$labels |>
   arrange(as.numeric(label)) |> cbind(filter(best_norm_a, best_met == "rmse")[, 2:3])
 
-ggplot() + geom_segment(data = dat,
+# plot dendogram
+p_tree <- ggplot() + geom_segment(data = dat,
                         aes(x=x, y=y, xend=xend, yend=yend)) +
   geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
-            angle = -90, nudge_y = -1, hjust = 0) + theme_void() +
-  theme(plot.margin = margin(b = 10)) + ylim(-15, 60)
+            angle = -90, nudge_y = -1, hjust = 0) + theme_void(base_size = 18) +
+  theme(plot.margin = margin(b = 10)) + ylim(-6, 12) +
+  geom_hline(aes(yintercept = 5.5), col = "grey42", lty = "dashed") +
+  scale_color_viridis_d("best model", option = "H")
 
+
+clust <- cutree(mydata.hclust, h = 5.5)
+
+## PCA
+pca_dat <- filter(best_norm_a, best_met == "rmse") |>
+  select(c(2, 28, 30:40, 43:44)) |> select(c(-1,-2,-9, -10, -11)) |>
+  mutate(crv = as.numeric(crv)) |> prcomp()
+
+plot(pca_dat)
+biplot(pca_dat)
+
+p_pca <- as.data.frame(pca_dat$x) |> cbind(clust) |>
+  mutate(clust = factor(clust)) |> ggplot() +
+  geom_point(aes(x = PC1, y = PC2, col = clust), size = 2.75) +
+  geom_text(aes(x = PC1, y = PC2, col = clust,
+                label = best_bias_a$lake),
+            nudge_x = 0, nudge_y = 1.5) + 
+  geom_segment(data = as.data.frame(pca_dat$rotation*10),
+               aes(x = 0, y = 0, xend = PC1, yend = PC2),
+               arrow = arrow(length = unit(0.25, "cm"))) + 
+  geom_text(data = as.data.frame(pca_dat$rotation*10),
+            aes(x = PC1, y = PC2, label = rownames(pca_dat$rotation)),
+            col = "grey42") + theme_minimal(base_size = 18) +
+  scale_color_viridis_d("Cluster") +
+  xlab(paste0("PC1 ( ",
+              round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[1]*100, 1),
+              "% )")) +
+  ylab(paste0("PC1 ( ",
+              round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[2]*100, 1),
+              "% )"))
+
+p_bmc <- best_all_a |>
+  left_join(data.frame(lake = best_rmse_a$lake,
+                       cluster = factor(clust))) |>
+  select(lake, model, cluster, best_met) |>
+  ggplot() + geom_histogram(aes(fill = model, x = cluster),
+                            stat = "count", position = "Dodge") +
+  theme_minimal(base_size = 18) +
+  scale_fill_viridis_d("best model", option = "H") +
+  facet_wrap(~best_met)
+
+p_rmsec <- best_all_a |>
+  left_join(data.frame(lake = best_rmse_a$lake,
+                       cluster = factor(clust))) |>
+  select(lake, model, cluster, best_met, rmse, nse, r, bias, mae, nmae) |>
+  mutate(nmae = ifelse(nmae > 1e4, NA, nmae)) |>
+  pivot_longer(5:10) |> slice(which(best_met == name)) |>
+  ggplot() + geom_boxplot(aes(y = value, x = cluster, fill = cluster)) +
+  theme_minimal(base_size = 18) + scale_fill_viridis_d("Cluster") +
+  facet_wrap(~best_met, scales = "free_y")
+
+
+ggarrange(p_tree, p_pca, p_bmc, p_rmsec, nrow = 2, ncol = 2, labels = "AUTO")
+
+ggsave("clustering_sbest.png", width = 20, height = 20, bg = "white")
+
+# distributuin of the lake characteristics
+
+lake_meta |> select(-1, -(3:5), -12, -13, -14, -17, -18) |>
+  rename(lake = "Lake.Short.Name") |> left_join(kw) |>
+  left_join(select(mutate(hyps_type, curvature = as.numeric(crv)), -crv)) |>
+  left_join(data.frame(lake = best_rmse_a$lake,
+                       cluster = factor(clust, clust, clust))) |>
+  pivot_longer(2:11) |>
+  ggplot() +
+  geom_boxplot(aes(x = cluster, y = value, fill = cluster)) +
+  scale_fill_viridis_d("Cluster") +
+  facet_wrap(~name, scales = "free") + theme_minimal(base_size = 18)
+
+ggsave("clust_char.png", width = 13, height = 9, bg = "white")
+
+##--------------- statistical models for best model/performacne ----------------
 # fit multinomial log-linear model 
 dat <- left_join(best_rmse_a, lake_meta,
                  by = c("lake" = "Lake.Short.Name")) |>
@@ -237,6 +303,16 @@ res_m |> ggplot() + geom_line(aes(x = lake.area.sqkm, y = value, col = name)) +
 ggplot(dat) + geom_point(aes(x = kw, y = lake.area.sqkm, col = model, pch = crv)) +
   scale_y_log10() + scale_x_log10()
 
+
+## model best rsme from lake propertiers
+
+rmse_m <- left_join(best_all_a, lake_meta,
+                    by = c("lake" = "Lake.Short.Name")) |>
+  left_join(kw) |> left_join(hyps_type) |> lm(formula = rmse ~ (kw + elevation.m + max.depth.m +
+               lake.area.sqkm + latitude.dec.deg + longitude.dec.deg +
+               reldepth_median + months_meas) * crv)
+
+summary(rmse_m)
 ##--------------- plots looking at the best performing parameter set -------------
 
 
