@@ -15,7 +15,7 @@ library(ggplot2)
 library(ggpubr)
 library(knitr)
 library(nnet)
-
+library(data.table)
 
 # the results from the calibration runs descriptions of the different columns
 # can be found in "data/results_lhc_description.csv"
@@ -576,7 +576,7 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali,
   
   do.call(grid.arrange, c(pl2, ncol = length(pars)-1, as.table = FALSE) )
   
-  
+  # ggarrange(plotlist = pl2, ncol = length(pars) - 1, nrow = length(pars) - 1)
   
 }
 
@@ -603,3 +603,83 @@ my_sens_plot(res_cali = res, pars = c("swr", "wind_speed", "Kw",
                                       "hgeo",
                                       "a_seiche"),
              l = "Kivu", m = "Simstrat")
+
+##### Cluster analysis and PCA, clustering by GOF -----
+
+# calculate distance for hirarchical clustering
+distance2 <- filter(best_norm_a, best_met == "rmse") |>
+  select(c(4, 6, 7, 8)) |>
+  dist()
+mydata.hclust2 <- hclust(distance2)
+
+# extract data for plotting with ggplot2
+dat2 <- dendro_data(as.dendrogram(mydata.hclust2), type = "rectangle")$segments
+labs2 <- dendro_data(as.dendrogram(mydata.hclust2), type = "rectangle")$labels |>
+  arrange(as.numeric(label)) |> cbind(filter(best_norm_a, best_met == "rmse")[, 2:3])
+
+# plot dendogram
+p_tree2 <- ggplot() + geom_segment(data = dat2,
+                                  aes(x=x, y=y, xend=xend, yend=yend)) +
+  geom_text(data = labs2, aes(x = x, y = y, label = lake, col = model),
+            angle = -90, nudge_y = -1, hjust = 0) + theme_void(base_size = 18) +
+  theme(plot.margin = margin(b = 10)) + ylim(-6, 12) +
+  geom_hline(aes(yintercept = 5.5), col = "grey42", lty = "dashed") +
+  scale_color_viridis_d("best model", option = "H")
+
+
+clust2 <- cutree(mydata.hclust2, h = 5.5)
+
+## PCA
+pca_dat2 <- filter(best_norm_a, best_met == "rmse") |>
+  select(c(4, 5, 6, 8, 10, 30:34, 40, 43:44)) |>
+  mutate(crv = as.numeric(crv)) |> prcomp()
+
+plot(pca_dat2)
+biplot(pca_dat2)
+
+p_pca2 <- as.data.frame(pca_dat2$x) |> cbind(clust) |>
+  mutate(clust = factor(clust)) |> ggplot() +
+  geom_point(aes(x = PC1, y = PC2, col = clust), size = 2.75) +
+  geom_text(aes(x = PC1, y = PC2, col = clust,
+                label = best_bias_a$lake),
+            nudge_x = 0, nudge_y = 1.5) + 
+  geom_segment(data = as.data.frame(pca_dat2$rotation*10),
+               aes(x = 0, y = 0, xend = PC1, yend = PC2),
+               arrow = arrow(length = unit(0.25, "cm"))) + 
+  geom_text(data = as.data.frame(pca_dat2$rotation*10),
+            aes(x = PC1, y = PC2, label = rownames(pca_dat2$rotation)),
+            col = "grey42") + theme_minimal(base_size = 18) +
+  scale_color_viridis_d("Cluster") +
+  xlab(paste0("PC1 ( ",
+              round((pca_dat2$sdev^2/sum(pca_dat2$sdev^2))[1]*100, 1),
+              "% )")) +
+  ylab(paste0("PC1 ( ",
+              round((pca_dat2$sdev^2/sum(pca_dat2$sdev^2))[2]*100, 1),
+              "% )"))
+
+##### Plot best parameter values vs lake characteristics
+df_best_rmse = data.table(best_rmse)
+
+cal_pars = names(df_best_rmse)[10:24]
+lake_chars = names(df_best_rmse)[c(30, 33, 35, 36, 39)]
+
+plts = list()
+for(i in lake_chars){
+  plts2 = list()
+  for(j in cal_pars){
+    p = ggplot(df_best_rmse) +
+      geom_point(aes(.data[[i]], .data[[j]], colour = model))
+    if(i %in% c("mean.depth.m", "lake.area.sqkm")){
+      p = p +
+        scale_x_continuous(trans = "log10")
+    }
+    p = p +
+      thm
+    
+    plts2[[length(plts2) + 1]] = p
+  }
+  
+  p_i = ggarrange(plotlist = plts2, common.legend = T, align = "hv")
+  
+  plts[[length(plts) + 1]] = p_i
+}
