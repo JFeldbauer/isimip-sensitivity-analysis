@@ -165,13 +165,37 @@ ggsave("hypso_class.png", width = 13, height = 13, bg = "white")
 best_norm_a <- left_join(best_all_a, lake_meta,
                          by = c("lake" = "Lake.Short.Name")) |>
   left_join(kw) |> left_join(hyps_type) |>
+  mutate(osgood = mean.depth.m/(sqrt(mean.depth.m))) |>
   ungroup() |> mutate(across(c(32:35), function(x)(x - min(x) + 1e-4)^(1/3))) |>
-  mutate(across(c(4:24, 30:43),
+  mutate(across(c(4:24, 30:43, 45),
                 function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
+
+## kmeans clustering
+
+# estimate optimal number of clusters using kmeans clustering
+dats <- filter(best_norm_a, best_met == "rmse") |>
+  select(c(2, 28, 30:40, 43:45)) |> select(c(-1,-2,-9, -10, -11)) |>
+  mutate(crv = as.numeric(crv))
+silhouette_score <- function(k, dats){
+  km <- kmeans(dats, centers = k, nstart = 500, iter.max = 500)
+  ss <- silhouette(km$cluster, dist(dats))
+  mean(ss[, 3])
+}
+k <- 2:10
+avg_sil <- sapply(k, silhouette_score, dats)
+plot(k, type='b', avg_sil, xlab='Number of clusters', ylab='Average Silhouette Scores', frame=FALSE)
+
+nkmclust <- which.max(avg_sil) + 1
+
+km.final <- kmeans(dats, nkmclust, nstart = 500, iter.max = 500)
+
+kmclust <- km.final$cluster
+
+## hirarchical clustering
 # calculate distance for hirarchical clustering
 disttance <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(2, 28, 30:40, 43:44)) |> select(c(-1,-2,-9, -10, -11)) |>
+  select(c(2, 28, 30:40, 43:45)) |> select(c(-1,-2,-9, -10, -11)) |>
   dist()
 mydata.hclust <- hclust(disttance)
 
@@ -185,27 +209,27 @@ p_tree <- ggplot() + geom_segment(data = dat,
                         aes(x=x, y=y, xend=xend, yend=yend)) +
   geom_text(data = labs, aes(x = x, y = y, label = lake, col = model),
             angle = -90, nudge_y = -1, hjust = 0) + theme_void(base_size = 18) +
-  theme(plot.margin = margin(b = 10)) + ylim(-6, 12) +
-  geom_hline(aes(yintercept = 5.5), col = "grey42", lty = "dashed") +
+  theme(plot.margin = margin(b = 10)) + ylim(-6, 17) +
+  geom_hline(aes(yintercept = 8.5), col = "grey42", lty = "dashed") +
   scale_color_viridis_d("best model", option = "H")
 
 
-clust <- cutree(mydata.hclust, h = 5.5)
+clust <- cutree(mydata.hclust, k = 4)
 
 ## PCA
 pca_dat <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(2, 28, 30:40, 43:44)) |> select(c(-1,-2,-9, -10, -11)) |>
+  select(c(2, 28, 30:40, 43:45)) |> select(c(-1,-2,-9, -10, -11)) |>
   mutate(crv = as.numeric(crv)) |> prcomp()
 
 plot(pca_dat)
 biplot(pca_dat)
 
-p_pca <- as.data.frame(pca_dat$x) |> cbind(clust) |>
+p_pca <- as.data.frame(pca_dat$x) |> cbind(clust = clust) |>
   mutate(clust = factor(clust)) |> ggplot() +
   geom_point(aes(x = PC1, y = PC2, col = clust), size = 2.75) +
   geom_text(aes(x = PC1, y = PC2, col = clust,
                 label = best_bias_a$lake),
-            nudge_x = 0, nudge_y = 1.5) + 
+            nudge_x = 0, nudge_y = 0.25) + 
   geom_segment(data = as.data.frame(pca_dat$rotation*10),
                aes(x = 0, y = 0, xend = PC1, yend = PC2),
                arrow = arrow(length = unit(0.25, "cm"))) + 
@@ -236,7 +260,7 @@ p_rmsec <- best_all_a |>
   select(lake, model, cluster, best_met, rmse, nse, r, bias, mae, nmae) |>
   mutate(nmae = ifelse(nmae > 1e4, NA, nmae)) |>
   pivot_longer(5:10) |> slice(which(best_met == name)) |>
-  ggplot() + geom_boxplot(aes(y = value, x = cluster, fill = cluster)) +
+  ggplot() + geom_violin(aes(y = value, x = cluster, fill = cluster)) +
   theme_minimal(base_size = 18) + scale_fill_viridis_d("Cluster") +
   facet_wrap(~best_met, scales = "free_y")
 
@@ -247,18 +271,21 @@ ggsave("clustering_sbest.png", width = 20, height = 20, bg = "white")
 
 # distributuin of the lake characteristics
 
-lake_meta |> select(-1, -(3:5), -12, -13, -14, -17, -18) |>
+p_clst_char <- lake_meta |> select(-1, -(3:5), -12, -13, -14, -17, -18) |>
   rename(lake = "Lake.Short.Name") |> left_join(kw) |>
+  mutate(osgood = mean.depth.m/(sqrt(mean.depth.m))) |>
   left_join(select(mutate(hyps_type, curvature = as.numeric(crv)), -crv)) |>
   left_join(data.frame(lake = best_rmse_a$lake,
-                       cluster = factor(clust, clust, clust))) |>
-  pivot_longer(2:11) |>
+                       cluster = factor(clust))) |>
+  pivot_longer(2:12) |>
   ggplot() +
-  geom_boxplot(aes(x = cluster, y = value, fill = cluster)) +
+  geom_violin(aes(x = cluster, y = value, fill = cluster)) +
   scale_fill_viridis_d("Cluster") +
   facet_wrap(~name, scales = "free") + theme_minimal(base_size = 18)
 
-ggsave("clust_char.png", width = 13, height = 9, bg = "white")
+ggarrange(p_rmsec, p_clst_char, common.legend = TRUE)
+
+ggsave("clust_char.png", width = 17, height = 11, bg = "white")
 
 ##--------------- statistical models for best model/performacne ----------------
 # fit multinomial log-linear model 
@@ -637,12 +664,12 @@ pca_dat2 <- filter(best_norm_a, best_met == "rmse") |>
 plot(pca_dat2)
 biplot(pca_dat2)
 
-p_pca2 <- as.data.frame(pca_dat2$x) |> cbind(clust) |>
-  mutate(clust = factor(clust)) |> ggplot() +
+p_pca2 <- as.data.frame(pca_dat2$x) |> cbind(clust2) |>
+  mutate(clust = factor(clust2)) |> ggplot() +
   geom_point(aes(x = PC1, y = PC2, col = clust), size = 2.75) +
   geom_text(aes(x = PC1, y = PC2, col = clust,
                 label = best_bias_a$lake),
-            nudge_x = 0, nudge_y = 1.5) + 
+            nudge_x = 0, nudge_y = 0.5) + 
   geom_segment(data = as.data.frame(pca_dat2$rotation*10),
                aes(x = 0, y = 0, xend = PC1, yend = PC2),
                arrow = arrow(length = unit(0.25, "cm"))) + 
