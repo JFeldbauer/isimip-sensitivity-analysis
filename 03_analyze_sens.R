@@ -18,13 +18,14 @@ library(ggdendro)
 ##-------------- read in data ----------------------------------------------
 
 # load results of sensitivity analysis
-res <- read.csv("res_sens.csv")
+res <- read.csv("sensitivity_analysis/res_sens.csv")
 # save oiriginal results for plots
 res_o <- res
 # load results of latin hypercube calibration
-res_cali <- read.csv("../data/results_lhc.csv")
+res_cali <- read.csv("data/results_lhc.csv")
 # load lake meta data
-meta <- read.csv("../data/Lake_meta.csv")
+meta <- readRDS("data_derived/lake_meta_data_derived.RDS")
+meta_desc <- readRDS("data_derived/lake_meta_desc_derived.RDS")
 
 # set sensitivity values that are smaller than the of the dummy variable
 # to zero
@@ -69,15 +70,14 @@ res_mip |> pivot_longer(cols = 4:5) |>
   grids() + xlab("parameter") +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("sens_single.png", width = 14, height = 9)
+ggsave("Plots/sens_single.png", width = 14, height = 9)
 
 # check how many times most sensitive parameter from delta and S1 differ
 sum(res_mip$par_d != res_mip$par_S1)
 res_mip[res_mip$par_d != res_mip$par_S1, ]
 
 ## relate most sensitive parameter to meta info on lake
-res_mip <- left_join(res_mip, meta, by = c("lake" = "Lake.Short.Name")) |>
-  select(-Country, -Lake.Name.Folder, -Duration, -Lake.Name) |>
+res_mip <- left_join(res_mip, meta) |>
   mutate(Reservoir.or.lake. = as.factor(Reservoir.or.lake.),
          par_d = as.factor(par_d),
          par_S1 = as.factor(par_S1))
@@ -141,7 +141,7 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("count_sens.png", width = 14, height = 11)
+ggsave("Plots/count_sens.png", width = 14, height = 11)
 
 ## plot distribution of number of sensitive parameters
 delta_gip_l <- res_gip |> pivot_longer(seq(4, 14, by = 2)) |>
@@ -163,7 +163,7 @@ rbind(delta_gip_l, S1_gip_l) |> group_by(model, var, frac, lake, meas) |>
   scale_fill_viridis_d("Fraction of total sum", option = "D") +
   xlab("Number of parameters contributing")
 
-ggsave("count_imp_par.png", width = 14, height = 11)
+ggsave("Plots/count_imp_par.png", width = 14, height = 11)
 
 # lakes where no parameter is sensitive
 res |> group_by(lake, var, model) |>
@@ -185,7 +185,7 @@ res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
 
 ##------------------- look at sensitivity of wind speed scaling ---------------
 
-res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+res |> left_join(meta) |>
   mutate(delta = ifelse(delta > 1, 0, delta)) |>
   filter(names == "wind_speed") |> ggplot() +
   geom_point(aes(x = elevation.m, y = mean.depth.m, col = delta)) + facet_grid(model~var) +
@@ -344,7 +344,7 @@ p_sim_erk <- my_sens_plot(m = "Simstrat", l = "Erken", res_cali = res_cali,
 
 
 
-ggsave("GOTM_kivu.png", plot = p_gtm_kivu, width = 17, height = 12)
-ggsave("GLM_biel.png", plot = p_glm_biel, width = 17, height = 12)
-ggsave("FLake_stechlin.png", plot = p_fl_stech, width = 17, height = 12)
-ggsave("Simstrat_erken.png", plot = p_sim_erk, width = 17, height = 12)
+ggsave("Plots/GOTM_kivu.png", plot = p_gtm_kivu, width = 17, height = 12)
+ggsave("Plots/GLM_biel.png", plot = p_glm_biel, width = 17, height = 12)
+ggsave("Plots/FLake_stechlin.png", plot = p_fl_stech, width = 17, height = 12)
+ggsave("Plots/Simstrat_erken.png", plot = p_sim_erk, width = 17, height = 12)
