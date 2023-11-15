@@ -217,10 +217,11 @@ plot_meta <- function(data, measure = "rmse") {
 }
 
 # plot meta data vs best rmse for each lake and model
-best_all |> filter(best_met == "rmse") |> left_join(lake_meta) |> plot_meta()
+plot_meta()
 
 # plot meta data vs best r for each lake and model
-plot_meta(best_r, measure = "r")
+best_all |> filter(best_met == "r") |> left_join(lake_meta) |> 
+  plot_meta(measure = "r")
 
 # same plot but just for the best model per lake
 best_all_a |> filter(best_met == "rmse") |> left_join(lake_meta) |>
@@ -266,113 +267,6 @@ best_all_a |> left_join(lake_meta) |>
                             x = lake.area.sqkm,
                             col = model), size = 2) +
   thm + facet_wrap(.~best_met) + scale_x_log10()
-
-
-
-
-
-##---------- plots for single models -----------------------------
-
-# function to plot heatmaps for model performance along the different parameter
-my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali,
-                         pars = c("swr", "wind_speed", "mixing.coef_mix_turb",
-                                  "mixing.coef_mix_hyp"),
-                         log = rep(FALSE, length(pars))) {
-  
-  spec <- viridis::viridis(15)
-  dat <- filter(res_cali, model == m & lake == l)
-  dat_best <- filter(dat, rmse < quantile(rmse, 0.1, na.rm = TRUE))
-  thm <- theme_pubr(base_size = 13) + grids()
-  
-  pl <- lapply(combn(pars, 2, simplify = FALSE), function(p) {
-    plt <- ggplot(dat_best) +
-        geom_point(aes_string(x = p[1], y = p[2], color = "rmse"), shape = 15,
-                   size = 2, alpha = 0) +
-        geom_point(data = dat,
-                   aes_string(x = p[1], y = p[2], color = "rmse"), shape = 15,
-                   size = 1.5, alpha = 0.75) +
-        scale_colour_gradientn(colours = rev(spec)) + thm +
-        theme(legend.position = "none")
-    
-    if(log[pars %in% p[1]]) {
-      plt <- plt + scale_x_log10()
-    }
-    if(log[pars %in% p[2]]) {
-      plt <- plt + scale_y_log10()
-    }
-    return(plt)
-  })
-  
-  t <- ggplot(dat) +
-    geom_point(data = dat,
-               aes(x = swr, y = wind_speed, color = rmse), shape = 15,
-               size = 1.5, alpha = 0.75) +
-    scale_colour_gradientn(colours = rev(spec))
-  legend <- get_legend(t)
-  
-  t <- as_ggplot(arrangeGrob(text_grob(paste0("model: ", m, "\n lake: ", l)),
-                             legend, ncol = 2))
-  
-  pl2 <- rep(list(NULL), (length(pars)-1)^2)
-  
-  k <- 1
-  for (i in 1:(length(pars)-1)^2) {
-    if(lower.tri(matrix(1:(length(pars)-1)^2,
-                        ncol = (length(pars)-1),
-                        nrow = (length(pars)-1),
-                        byrow = TRUE),
-                 diag = TRUE)[i]) {
-      
-      pl2[[i]] <- pl[[k]]
-      k <- k+1
-      
-      if(!(i %in% c(1:(length(pars)-2),
-                    length(pars)-1))) {
-        pl2[[i]] <- pl2[[i]] + ylab("")
-      }
-      if(!(i %in% c(seq(length(pars)-1, (length(pars)-1)^2, by = length(pars)-1),
-                    length(pars)-1))) {
-        pl2[[i]] <- pl2[[i]] + xlab("")
-      }
-      if(i %in% seq(1, (length(pars)-1)^2, by = length(pars))) {
-        pl2[[i]] <- ggMarginal(pl2[[i]], type = "densigram")
-      }
-      
-    }
-  }
-  
-  pl2[[(length(pars)-1)^2 - (length(pars)-1) + 1]] <- t
-  
-  do.call(grid.arrange, c(pl2, ncol = length(pars)-1, as.table = FALSE) )
-  
-  # ggarrange(plotlist = pl2, ncol = length(pars) - 1, nrow = length(pars) - 1)
-  
-}
-
-# example plot showing a subset of parameter for lake Zurich and model GLM
-my_sens_plot(res_cali = res)
-
-# example plot showing all parameter for lake Zurich and model GLM
-my_sens_plot(res_cali = res, pars = c("swr", "wind_speed", "Kw",
-                                      "mixing.coef_mix_turb",
-                                      "mixing.coef_mix_hyp",
-                                      "mixing.coef_mix_conv"))
-
-# example plot showing all parameter for lake Biel and model GOTM
-my_sens_plot(res_cali = res, pars = c("swr", "wind_speed", "Kw",
-                                      "turb_param.const_num",
-                                      "bottom.h0b",
-                                      "turb_param.k_min"),
-             log = c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE),
-             l = "Biel", m = "GOTM")
-
-# example plot showing all parameter for lake Kivu and model Simstrat
-my_sens_plot(res_cali = res, pars = c("swr", "wind_speed", "Kw",
-                                      "cd",
-                                      "hgeo",
-                                      "a_seiche"),
-             l = "Kivu", m = "Simstrat")
-
 
 
 ##### Plot best parameter values vs lake characteristics

@@ -282,7 +282,7 @@ p_rmsec <- s_best_all |>
 
 ggarrange(p_pca, p_bmc, nrow = 1, ncol = 2)
 
-ggsave("Plots/clustering_sbest.png", width = 20, height = 20, bg = "white")
+ggsave("Plots/clustering_sbest.png", width = 19, height = 11, bg = "white")
 
 # distributuin of the lake characteristics
 
