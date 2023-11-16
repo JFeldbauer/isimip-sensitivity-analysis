@@ -31,7 +31,7 @@ best_all_a <- readRDS("data_derived/single_best_model.RDS")
 best_all <- readRDS("data_derived/best_par_sets.RDS")
 
 # ggplot theme to be used
-thm <- theme_pubr(base_size = 15) + grids()
+thm <- theme_pubr(base_size = 16) + grids()
 
 ##---------- look at best performing model per lake and metric -----------------
 
@@ -216,8 +216,6 @@ plot_meta <- function(data, measure = "rmse") {
   return(list(p1_meta, p2_meta))
 }
 
-# plot meta data vs best rmse for each lake and model
-plot_meta()
 
 # plot meta data vs best r for each lake and model
 best_all |> filter(best_met == "r") |> left_join(lake_meta) |> 
@@ -236,27 +234,41 @@ res |> pivot_longer(4:9) |> ggplot() +
   facet_wrap(~name, scales = "free_y") + thm + scale_y_log10()
 
 # check if the same models perform good or bad along the four models
-best_all |> pivot_longer(4:9) |> 
-  group_by(lake, best_met, name) |> reframe(range = diff(range(value)),
-                                       sd = sd(value,),
-                                       min = min(value),
-                                       max = max(value)) |>
-  ggplot() + geom_col(aes(y = range, x = lake)) +
-  facet_wrap(~name, scales = "free_y") + scale_y_log10()
+p_mcomp1 <- best_all |> pivot_longer(4:9) |> 
+  group_by(lake, best_met, name) |> filter(best_met == name) |>
+  reframe(range = diff(range(value)),
+          sd = sd(value,),
+          min = min(value),
+          max = max(value)) |>
+  mutate(range = ifelse(range > 1e3, NA, range)) |>
+  left_join(lake_meta) |>
+  ggplot() + geom_boxplot(aes(y = range, x = kmcluster, fill = kmcluster)) +
+  facet_wrap(~name, scales = "free_y") + thm +
+  scale_fill_viridis_d("Cluster") + ylab("Range model performacne") +
+  xlab("Cluster") + scale_y_log10()
 
-best_all |> pivot_longer(4:9) |> 
-  group_by(lake, best_met, name) |> reframe(range = diff(range(value)),
-                                            sd = sd(value,),
-                                            min = min(value),
-                                            max = max(value),
-                                            model_min = model[value == min(value)],
-                                            model_max = model[value == max(value)]) |>
-  ggplot() + geom_point(aes(x = min, y = max, col = model_max)) +
+p_mcomp2 <- best_all |> pivot_longer(4:9) |>
+  group_by(lake, best_met, name) |> filter(best_met == name) |>
+  reframe(range = diff(range(value)),
+          sd = sd(value),
+          best = case_when(name == "bias" ~ min(abs(value)),
+                            name %in% c("mae", "nmae", "rmse") ~ min(value),
+                            name %in% c("r", "nse") ~ max(value)),
+          worst = case_when(name == "bias" ~ max(abs(value)),
+                            name %in% c("mae", "nmae", "rmse") ~ max(value),
+                            name %in% c("r", "nse") ~ min(value))) |>
+  mutate(best = ifelse(best > 1e3, NA, best),
+         worst = ifelse(worst > 1e3, NA, worst)) |>
+  left_join(lake_meta) |>
+  ggplot() + geom_point(aes(x = worst, y = best, col = kmcluster),
+                        size = 3) +
   geom_abline(aes(intercept = 0, slope = 1), col = 2, lty = 17) +
-  facet_wrap(~name, scales = "free_y") + scale_y_log10() +
-  scale_x_log10()
+  facet_wrap(~name, scales = "free") + thm +
+  scale_color_viridis_d("Cluster") + xlab("Poorest model performance") +
+  ylab("Best model performance") + scale_x_log10() + scale_y_log10()
 
-
+ggarrange(p_mcomp1, p_mcomp2, common.legend = TRUE)
+ggsave("Plots/best_worst_model.png", width = 21, height = 10, bg = "white")
 
 ##-------- relate calibrated parameter values to lake characteristics ----
 
