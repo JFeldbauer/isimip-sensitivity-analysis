@@ -45,7 +45,7 @@ lake_meta_desc <- read.csv("data/Lake_meta_description.csv")
 # "data/lake_hypsographs_description.csv"
 hyps <- read.csv("data/lake_hypsographs.csv")
 
-
+thm <- theme_pubr(base_size = 16) + grids()
 
 ##------------- pick best performing parameter sets -------------------------
 
@@ -212,7 +212,7 @@ hyps |> left_join(hyps_type) |> group_by(lake) |>
                        lwd = 1.5) +
   facet_wrap(~lake) + coord_flip() +
   geom_abline(aes(slope = 1, intercept = 0), col = "black", lty = 15) +
-  theme_minimal(base_size = 14)
+  thm
 
 
 ## dendogram for hirarchcal clustering
@@ -250,7 +250,7 @@ p_pca <- as.data.frame(pca_dat$x) |>
                arrow = arrow(length = unit(0.25, "cm"))) + 
   geom_text(data = as.data.frame(pca_dat$rotation*10),
             aes(x = PC1, y = PC2, label = rownames(pca_dat$rotation)),
-            col = "grey42") + theme_minimal(base_size = 18) +
+            col = "grey42") + thm +
   scale_color_viridis_d("Cluster") +
   xlab(paste0("PC1 ( ",
               round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[1]*100, 1),
@@ -264,18 +264,17 @@ p_bmc <- s_best_all |>
   select(lake, model, kmcluster, best_met) |>
   ggplot() + geom_histogram(aes(fill = model, x = kmcluster),
                             stat = "count", position = "Dodge") +
-  theme_minimal(base_size = 18) +
+  thm +
   scale_fill_viridis_d("best model", option = "H") +
   facet_wrap(~best_met)
 
 p_rmsec <- s_best_all |>
   left_join(dat_clust) |>
   select(lake, model, kmcluster, best_met, rmse, nse, r, bias, mae, nmae) |>
-  mutate(nmae = ifelse(nmae > 1e4, NA, nmae),
-         kmcluster = factor(kmcluster)) |>
+  mutate(nmae = ifelse(nmae > 1e4, NA, nmae)) |>
   pivot_longer(5:10) |> slice(which(best_met == name)) |>
   ggplot() + geom_violin(aes(y = value, x = kmcluster, fill = kmcluster)) + 
-  theme_minimal(base_size = 18) + scale_fill_viridis_d("Cluster") +
+  thm + scale_fill_viridis_d("Cluster") +
   facet_wrap(~best_met, scales = "free_y") + theme(legend.position = "top") +
   xlab("Cluster") + ylab("")
 
@@ -295,7 +294,7 @@ p_clst_char <- lapply(colnames(dat_clust)[2:13], function(c) {
        ggplot() +
       geom_col(aes_string(fill = c, y = "Freq", x = "kmcluster")) +
       scale_fill_viridis_d(desc, option = ifelse(c == "crv", "G", "E")) +
-      xlab("") + theme_minimal(base_size = 17) +
+      xlab("") + thm +
       theme(legend.position = "top") + guides(fill=guide_legend(ncol=2))
   } else {
     p <- dat |> ggplot() +
@@ -303,13 +302,16 @@ p_clst_char <- lapply(colnames(dat_clust)[2:13], function(c) {
       geom_jitter(aes_string(y = c,  x = "kmcluster"), height = 0,
                   width = 0.125, size = 2.5, col = "grey42", alpha = 0.5) +
       scale_fill_viridis_d("") +
-      theme_minimal(base_size = 17) + xlab("") +
+      thm + xlab("") +
       ylab(paste0(desc, " ( ", unit, " )")) +
       theme(legend.position = "none")
   }
   
   if(c %in% colnames(dat_clust)[10:13]) {
     p <- p + xlab("Cluster")
+  }
+  if(c %in% colnames(dat_clust)[6:8]) {
+    p <- p + scale_y_log10()
   }
   return(p)
   }) |> ggarrange(plotlist = _)

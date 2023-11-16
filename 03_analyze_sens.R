@@ -14,7 +14,7 @@ library(gridExtra)
 library(ggExtra)
 library(ggdendro)
 
-
+thm <- theme_pubr(base_size = 16) + grids()
 ##-------------- read in data ----------------------------------------------
 
 # load results of sensitivity analysis
@@ -66,11 +66,25 @@ res_mip |> pivot_longer(cols = 4:5) |>
                            "par_d" ~ "\u03B4",
                            "par_S1" ~ "S1")) |> ggplot() +
   geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
-  facet_wrap(~model, scales = "free_x") + theme_pubr(base_size = 17) +
+  facet_wrap(~model, scales = "free_x") + thm +
   grids() + xlab("parameter") +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
 ggsave("Plots/sens_single.png", width = 14, height = 9)
+
+
+# check if there is a correlation between sensitive parameter and cluster
+res_mip |> left_join(meta) |> select(model, var, par_d, par_S1, kmcluster) |>
+  pivot_longer(3:4) |>
+  mutate(name = case_match(name,
+                           "par_d" ~ "\u03B4",
+                           "par_S1" ~ "S1")) |> ggplot() +
+  geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
+  facet_grid(paste("Cluster ",kmcluster)~model, scales = "free") +
+  theme_pubr(base_size = 17) +
+  theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
+  grids() + xlab("parameter") +
+  scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
 # check how many times most sensitive parameter from delta and S1 differ
 sum(res_mip$par_d != res_mip$par_S1)
@@ -126,44 +140,58 @@ res_gip <- res |> group_by(lake, model, var) |> filter(delta != 0 & S1 != 0) |>
 delta_gip <- res_gip |> pivot_longer(seq(4, 14, by = 2)) |>
   filter(grepl("par_d_.*", name)) |>
   mutate(frac = gsub(".*_", "", name)) |> 
-  group_by(model, var, frac) |> reframe(par = unlist(strsplit(value, ", ")),
+  group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
                                                    meas = "\u03B4")
 S1_gip <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
   filter(grepl("par_S1_.*", name)) |>
   mutate(frac = gsub(".*_", "", name)) |> 
-  group_by(model, var, frac) |> reframe(par = unlist(strsplit(value, ", ")),
+  group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
                                                 meas = "S1")
 rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   ggplot() +
   geom_histogram(aes(x = par, fill = meas), stat = "count", position = "dodge") +
-  facet_grid(var~model, scales = "free_x") + theme_pubr(base_size = 17) +
+  facet_grid(var~model, scales = "free_x") + thm +
   grids() + xlab("parameter") +
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
 ggsave("Plots/count_sens.png", width = 14, height = 11)
 
+# also plot for the different cluster
+rbind(delta_gip, S1_gip) |> filter(frac == "1") |> left_join(meta) |>
+  group_by(model, kmcluster, var, par) |> reframe(cnt = length(var)) |>
+  group_by(model, kmcluster, var) |> mutate(cnt = cnt/sum(cnt)) |>
+  ungroup() |>
+  complete(model, kmcluster, var, par) |>
+  ggplot() + geom_tile(aes(x = par,  y = kmcluster, fill = cnt)) + 
+  facet_grid(var~model) + thm + grids() +
+  scale_fill_viridis_c("count", option = "C") +
+  theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
+  xlab("Parameter") + ylab("Cluster")
+
 ## plot distribution of number of sensitive parameters
-delta_gip_l <- res_gip |> pivot_longer(seq(4, 14, by = 2)) |>
-  filter(grepl("par_d_.*", name)) |>
-  mutate(frac = gsub(".*_", "", name)) |> 
-  group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
-                                        meas = "\u03B4")
-S1_gip_l <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
-  filter(grepl("par_S1_.*", name)) |>
-  mutate(frac = gsub(".*_", "", name)) |> 
-  group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
-                                        meas = "S1")
-rbind(delta_gip_l, S1_gip_l) |> group_by(model, var, frac, lake, meas) |>
+rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
   reframe(n = n()) |> mutate(frac = factor(frac, levels = c("1", "75", "05"),
                                            labels = c("100%", "75%", "50%"))) |>
   ggplot() + geom_histogram(aes(x = n,  fill = frac),
                             stat = "count", position = "dodge") + 
-  facet_grid(var~model) + theme_pubr(base_size = 17) + grids() +
+  facet_grid(var~model) + thm + grids() +
   scale_fill_viridis_d("Fraction of total sum", option = "D") +
   xlab("Number of parameters contributing")
 
 ggsave("Plots/count_imp_par.png", width = 14, height = 11)
+
+## alternative plot
+rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
+  reframe(n = n()) |> mutate(frac = factor(frac, levels = c("1", "75", "05"),
+                                           labels = c("100%", "75%", "50%"))) |>
+  group_by(model, frac, var, n) |> reframe(cnt = length(var)) |>
+  complete(model, frac, var, n) |>
+  ggplot() + geom_tile(aes(x = n,  y = frac, fill = cnt)) + 
+  facet_grid(var~model) + theme_pubr(base_size = 17) + grids() +
+  scale_fill_viridis_c("count", option = "C") +
+  xlab("Number of parameters contributing")
+
 
 # lakes where no parameter is sensitive
 res |> group_by(lake, var, model) |>
