@@ -14,11 +14,15 @@ library(gridExtra)
 library(ggExtra)
 library(ggdendro)
 
-thm <- theme_pubr(base_size = 16) + grids()
 ##-------------- read in data ----------------------------------------------
-
+# source settings script
+source("0_Settings.R")
 # load results of sensitivity analysis
 res <- read.csv("sensitivity_analysis/res_sens.csv")
+
+# filter metrics that are set in 0_Settings.R
+res <- filter(res, var %in% p_metrics)
+
 # save oiriginal results for plots
 res_o <- res
 # load results of latin hypercube calibration
@@ -59,22 +63,23 @@ res_mip <- res |> group_by(lake, model, var) |>
   reframe(par_d = names[delta == max(delta)],
           par_S1 = names[S1 == max(S1)])
 
-# plot distribution of single most senstitive parameter over all lakes and models
+# plot distribution of single most sensitive parameter over all lakes and models
 # for all measures
 res_mip |> pivot_longer(cols = 4:5) |>
   mutate(name = case_match(name,
                            "par_d" ~ "\u03B4",
                            "par_S1" ~ "S1")) |> ggplot() +
   geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
-  facet_wrap(~model, scales = "free_x") + thm +
+  facet_grid(var~model, scales = "free_x") + thm +
   grids() + xlab("parameter") +
+  theme(axis.text.x=element_text(angle = -60, hjust = 0)) +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("Plots/sens_single.png", width = 14, height = 9)
-
+ggsave("Plots/sens_single.pdf", width = 11, height = 9)
 
 # check if there is a correlation between sensitive parameter and cluster
-res_mip |> left_join(meta) |> select(model, var, par_d, par_S1, kmcluster) |>
+res_mip |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  select(model, var, par_d, par_S1, kmcluster) |>
   pivot_longer(3:4) |>
   mutate(name = case_match(name,
                            "par_d" ~ "\u03B4",
@@ -86,12 +91,14 @@ res_mip |> left_join(meta) |> select(model, var, par_d, par_S1, kmcluster) |>
   grids() + xlab("parameter") +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
+ggsave("Plots/sens_single_clust.pdf", width = 11, height = 9)
+
 # check how many times most sensitive parameter from delta and S1 differ
 sum(res_mip$par_d != res_mip$par_S1)
 res_mip[res_mip$par_d != res_mip$par_S1, ]
 
 ## relate most sensitive parameter to meta info on lake
-res_mip <- left_join(res_mip, meta) |>
+res_mip <- left_join(res_mip, meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(Reservoir.or.lake. = as.factor(Reservoir.or.lake.),
          par_d = as.factor(par_d),
          par_S1 = as.factor(par_S1))
@@ -155,19 +162,34 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("Plots/count_sens.png", width = 14, height = 11)
+ggsave("Plots/count_sens.pdf", width = 14, height = 11)
 
 # also plot for the different cluster
-rbind(delta_gip, S1_gip) |> filter(frac == "1") |> left_join(meta) |>
+rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   group_by(model, kmcluster, var, par) |> reframe(cnt = length(var)) |>
   group_by(model, kmcluster, var) |> mutate(cnt = cnt/sum(cnt)) |>
   ungroup() |>
   complete(model, kmcluster, var, par) |>
   ggplot() + geom_tile(aes(x = par,  y = kmcluster, fill = cnt)) + 
   facet_grid(var~model) + thm + grids() +
-  scale_fill_viridis_c("count", option = "C") +
+  scale_fill_viridis_c("Frequency", option = "C") +
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   xlab("Parameter") + ylab("Cluster")
+
+ggsave("Plots/freq_sens_clust.pdf", width = 14, height = 11)
+
+rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_histogram(aes(x = par,  fill = meas),
+                            stat = "count", position = "dodge") + 
+  facet_grid(kmcluster~model, scales = "free_x") + thm + grids() +
+  scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F")) +
+  theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
+  xlab("Parameter")
+
+ggsave("Plots/count_sens_clust.pdf", width = 14, height = 11)
+
 
 ## plot distribution of number of sensitive parameters
 rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
@@ -179,7 +201,7 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
   scale_fill_viridis_d("Fraction of total sum", option = "D") +
   xlab("Number of parameters contributing")
 
-ggsave("Plots/count_imp_par.png", width = 14, height = 11)
+ggsave("Plots/count_imp_par.pdf", width = 14, height = 11)
 
 ## alternative plot
 rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
@@ -192,12 +214,13 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
   scale_fill_viridis_c("count", option = "C") +
   xlab("Number of parameters contributing")
 
+ggsave("Plots/count_imp_par2.pdf", width = 14, height = 11)
 
 # lakes where no parameter is sensitive
 res |> group_by(lake, var, model) |>
   mutate(no_sens = all(delta[names != "dummy"] <= delta[names == "dummy"]) ||
            all(S1[names != "dummy"] <= S1[names == "dummy"])) |>
-  filter(no_sens) |> select(lake) |> unique() |> View()
+  filter(no_sens) |> select(lake) |> unique() |> View() # only happens for nmae
 
 # correlation between S1 and delta
 res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
@@ -213,10 +236,11 @@ res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
 
 ##------------------- look at sensitivity of wind speed scaling ---------------
 
-res |> left_join(meta) |>
+res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(delta = ifelse(delta > 1, 0, delta)) |>
   filter(names == "wind_speed") |> ggplot() +
-  geom_point(aes(x = elevation.m, y = mean.depth.m, col = delta)) + facet_grid(model~var) +
+  geom_point(aes(x = lake.area.sqkm, y = mean.depth.m, col = delta)) +
+  facet_grid(model~var) +
   scale_x_log10() + scale_y_log10() + scale_color_viridis_c(option = "D")
 
 

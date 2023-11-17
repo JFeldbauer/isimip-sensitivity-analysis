@@ -12,8 +12,8 @@ max.depth.m,maximum depth of the lake (m),max. depth,m
 lake.area.sqkm,lake surface area (km�),lake area,km²
 Average.Secchi.disk.depth.m,average Secchi disk depth (m),Secchi depth,m
 Light.extinction.coefficient.m,light extinction coefficient (1/m),Kw,1/m
-Duration,simulated years for the calibration,simulation duration,s
-months_meas,number of unique months in which observations were availbale,unique months observed,-
-reldepth_median,"median relative depth of the observations (0 means surface, 1 means bottom)",relative depth of obs.,-
+Duration,number of years with observations,years obs.,y
+months_meas,number of unique months in which observations were availbale,months observed,-
+reldepth_median,"median relative depth of the observations (0 means surface, 1 means bottom)",rel. depth of obs.,-
 months_median,median month of the observations,median month observed,-
-depth_meas,number of unique depths at which water temperature was measured,n unique depths measured,
+depth_meas,number of unique depths at which water temperature was measured,n unique depths obs,
