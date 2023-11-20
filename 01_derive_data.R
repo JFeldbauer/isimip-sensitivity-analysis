@@ -395,7 +395,7 @@ p_pca <- as.data.frame(pca_dat$x) |>
   xlab(paste0("PC1 ( ",
               round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[1]*100, 1),
               "% )")) +
-  ylab(paste0("PC1 ( ",
+  ylab(paste0("PC2 ( ",
               round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[2]*100, 1),
               "% )"))
 
