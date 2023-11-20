@@ -369,7 +369,7 @@ as.data.frame(pca_all$x) |>
   xlab(paste0("PC1 ( ",
               round((pca_all$sdev^2/sum(pca_all$sdev^2))[1]*100, 1),
               "% )")) +
-  ylab(paste0("PC1 ( ",
+  ylab(paste0("PC2 ( ",
               round((pca_all$sdev^2/sum(pca_all$sdev^2))[2]*100, 1),
               "% )"))
 ggsave("Plots/pca_all_char.png", width = 11, height = 10)
@@ -395,7 +395,7 @@ p_pca <- as.data.frame(pca_dat$x) |>
   xlab(paste0("PC1 ( ",
               round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[1]*100, 1),
               "% )")) +
-  ylab(paste0("PC1 ( ",
+  ylab(paste0("PC2 ( ",
               round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[2]*100, 1),
               "% )"))
 
@@ -532,6 +532,6 @@ p_pca2 <- as.data.frame(pca_dat2$x) |> cbind(clust2) |>
   xlab(paste0("PC1 ( ",
               round((pca_dat2$sdev^2/sum(pca_dat2$sdev^2))[1]*100, 1),
               "% )")) +
-  ylab(paste0("PC1 ( ",
+  ylab(paste0("PC2 ( ",
               round((pca_dat2$sdev^2/sum(pca_dat2$sdev^2))[2]*100, 1),
               "% )"))
