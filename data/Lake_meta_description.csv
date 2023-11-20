@@ -4,14 +4,14 @@ Lake.Short.Name,short lake name,short lake name,-
 Lake.Name.Folder,name of the folder for each lake,lake folder,-
 Reservoir.or.lake.,either lake or reservoir,type,-
 Country,country the lake is located in,country,
-latitude.dec.deg,coordinates of the lake latitude (decimal deg.),latitude,°
-longitude.dec.deg,coordinates of the lake longitude (decimal deg.),longitude,°
-elevation.m,elevation of the lake (m),elevation,m
-mean.depth.m,mean depth of the lake (m),mean depth,m
-max.depth.m,maximum depth of the lake (m),max. depth,m
-lake.area.sqkm,lake surface area (km�),lake area,km²
-Average.Secchi.disk.depth.m,average Secchi disk depth (m),Secchi depth,m
-Light.extinction.coefficient.m,light extinction coefficient (1/m),Kw,1/m
+latitude.dec.deg,coordinates of the lake latitude,latitude,°
+longitude.dec.deg,coordinates of the lake longitude,longitude,°
+elevation.m,elevation of the lake,elevation,m
+mean.depth.m,mean depth of the lake,mean depth,m
+max.depth.m,maximum depth of the lake,max. depth,m
+lake.area.sqkm,lake surface area,lake area,km²
+Average.Secchi.disk.depth.m,average Secchi disk depth,Secchi depth,m
+Light.extinction.coefficient.m,light extinction coefficient,Kw,1/m
 Duration,number of years with observations,years obs.,y
 months_meas,number of unique months in which observations were availbale,months observed,-
 reldepth_median,"median relative depth of the observations (0 means surface, 1 means bottom)",rel. depth of obs.,-

@@ -75,7 +75,7 @@ res_mip |> pivot_longer(cols = 4:5) |>
   theme(axis.text.x=element_text(angle = -60, hjust = 0)) +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("Plots/sens_single.pdf", width = 11, height = 9)
+ggsave("Plots/sens_single.png", width = 11, height = 9)
 
 # check if there is a correlation between sensitive parameter and cluster
 res_mip |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
@@ -91,7 +91,7 @@ res_mip |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   grids() + xlab("parameter") +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("Plots/sens_single_clust.pdf", width = 11, height = 9)
+ggsave("Plots/sens_single_clust.png", width = 11, height = 9)
 
 # check how many times most sensitive parameter from delta and S1 differ
 sum(res_mip$par_d != res_mip$par_S1)
@@ -162,7 +162,7 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
-ggsave("Plots/count_sens.pdf", width = 14, height = 11)
+ggsave("Plots/count_sens.png", width = 14, height = 11)
 
 # also plot for the different cluster
 rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
@@ -172,12 +172,12 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   ungroup() |>
   complete(model, kmcluster, var, par) |>
   ggplot() + geom_tile(aes(x = par,  y = kmcluster, fill = cnt)) + 
-  facet_grid(var~model) + thm + grids() +
+  facet_grid(var~model, scales = "free_x") + thm + grids() +
   scale_fill_viridis_c("Frequency", option = "C") +
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   xlab("Parameter") + ylab("Cluster")
 
-ggsave("Plots/freq_sens_clust.pdf", width = 14, height = 11)
+ggsave("Plots/freq_sens_clust.png", width = 14, height = 11)
 
 rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
@@ -188,7 +188,7 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   xlab("Parameter")
 
-ggsave("Plots/count_sens_clust.pdf", width = 14, height = 11)
+ggsave("Plots/count_sens_clust.png", width = 14, height = 11)
 
 
 ## plot distribution of number of sensitive parameters
@@ -201,7 +201,7 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
   scale_fill_viridis_d("Fraction of total sum", option = "D") +
   xlab("Number of parameters contributing")
 
-ggsave("Plots/count_imp_par.pdf", width = 14, height = 11)
+ggsave("Plots/count_imp_par.png", width = 14, height = 11)
 
 ## alternative plot
 rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
@@ -214,7 +214,7 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
   scale_fill_viridis_c("count", option = "C") +
   xlab("Number of parameters contributing")
 
-ggsave("Plots/count_imp_par2.pdf", width = 14, height = 11)
+ggsave("Plots/count_imp_par2.png", width = 14, height = 11)
 
 # lakes where no parameter is sensitive
 res |> group_by(lake, var, model) |>

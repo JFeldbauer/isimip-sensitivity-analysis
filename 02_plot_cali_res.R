@@ -143,7 +143,7 @@ p_dist_lake_a <- best_all_a |> pivot_longer(!!p_metrics) |>
   thm + xlab("") +
   facet_wrap(~best_met, scales = "free")
 
-ggsave("Plots/best_fit.pdf", p_dist_lake_a, width = 13, height = 7)
+ggsave("Plots/best_fit.png", p_dist_lake_a, width = 13, height = 7)
 
 # distribution of the best parameter per model and lake for all 6 metrics
 p_dist_lake <- best_all |> pivot_longer(!!p_metrics) |>
@@ -154,7 +154,7 @@ p_dist_lake <- best_all |> pivot_longer(!!p_metrics) |>
   thm + xlab("") +
   facet_grid(model~best_met, scales = "free")
 
-ggsave("Plots/best_fit_model.pdf", p_dist_lake, width = 13, height = 7)
+ggsave("Plots/best_fit_model.png", p_dist_lake, width = 13, height = 7)
 
 # same plot but with clusters
 # distribution of the single best model per lake for all 6 metrics
@@ -167,7 +167,7 @@ best_all_a |> pivot_longer(!!p_metrics) |> filter(best_met == name) |>
   facet_wrap(~best_met, scales = "free") +
   scale_fill_viridis_d("Cluster")
 
-ggsave("Plots/best_fit_clust.pdf", width = 13, height = 7)
+ggsave("Plots/best_fit_clust.png", width = 13, height = 7)
 
  # a map of the lakes with the location color coded according to the best
 # performing model
@@ -305,10 +305,10 @@ p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
   ylab("Best model performance") + scale_x_log10() + scale_y_log10()
 
 
-ggsave("Plots/range_best_model.pdf", p_mcomp1, width = 13, height = 9,
+ggsave("Plots/range_best_model.png", p_mcomp1, width = 13, height = 9,
        bg = "white")
 
-ggsave("Plots/poorest_best_model.pdf", p_mcomp2, width = 13, height = 9,
+ggsave("Plots/poorest_best_model.png", p_mcomp2, width = 13, height = 9,
        bg = "white")
 
 ##-------- relate calibrated parameter values to lake characteristics ----
@@ -328,7 +328,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   facet_grid(model~best_met) + scale_fill_viridis_d("Cluster") + thm +
   xlab("Cluster") + ylab("Calibrated wind scaling (-)")
 
-ggsave("Plots/dist_wind_scaling_cluster.pdf", width = 13, height = 11)
+ggsave("Plots/dist_wind_scaling_cluster.png", width = 13, height = 11)
 
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
@@ -337,7 +337,20 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   facet_grid(model~best_met) + scale_fill_viridis_d("Cluster") + thm +
   xlab("Cluster") + ylab("Calibrated swr scaling (-)")
 
-ggsave("Plots/dist_swr_scaling_cluster.pdf", width = 13, height = 11)
+ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 11)
+
+
+lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
+  best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+    pivot_longer(9:23) |> filter(model == m) |> na.omit() |>
+    ggplot() +
+    geom_boxplot(aes(x = best_met, y = value, fill = kmcluster)) +
+    facet_wrap(~name, scales = "free") + scale_fill_viridis_d("Cluster") +
+    thm + xlab("") + ylab("")}) |>
+  ggarrange(plotlist = _, labels = c("FLake", "GLM", "GOTM", "Simstrat"),
+            common.legend = TRUE)
+
+ggsave("Plots/par_value_cluster.png", width = 30, height = 20, bg = "white")
 
 
 ##### Plot best parameter values vs lake characteristics

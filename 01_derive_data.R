@@ -184,13 +184,15 @@ lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Country,
   facet_wrap(~name, scales = "free_x")
 
 # correlation plot
-lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, -Country,
+cor_all <- lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, -Country,
                     -crv, -Reservoir.or.lake., -Average.Secchi.disk.depth.m,
                     -Light.extinction.coefficient.m, -kw_sd, -tsurf_sd,
                     -tbot_sd) |>
   cor() |> corrplot::corrplot()
+
+
 # pca with all data
-lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, -Country,
+pca_all <- lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, -Country,
                     -Average.Secchi.disk.depth.m,
                     -Light.extinction.coefficient.m, -kw_sd, -tsurf_sd,
                     - depth_meas, -tbot_sd) |>
@@ -205,7 +207,9 @@ lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, -Country,
                 function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE))) |>
   mutate(Reservoir.or.lake. = as.numeric(Reservoir.or.lake.),
          crv = as.numeric(crv)) |>
-  prcomp() |> biplot()
+  prcomp()
+
+biplot(pca_all)
 
 
 # only select a subset of meta charcteristics
@@ -281,6 +285,21 @@ lake_meta_desc <- mutate(lake_meta_desc,
 
 saveRDS(lake_meta, "data_derived/lake_meta_data_derived.RDS")
 saveRDS(lake_meta_desc, "data_derived/lake_meta_desc_derived.RDS")
+
+# print table with the meta data
+char_tested <- lake_meta |>
+  select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, -Country,
+         -Average.Secchi.disk.depth.m, -Light.extinction.coefficient.m, -kw_sd,
+         -tsurf_sd, - depth_meas, -tbot_sd) |> colnames()
+char_used <- dat_clust |> colnames()
+
+filter(lake_meta_desc, column_name %in% char_tested) |>
+  mutate(used = column_name %in% char_used) |>
+  mutate(used = ifelse(used, "yes", "no")) |>
+  select(-short_description) |>
+  setNames(c("Name", "Description", "Unit", "Used")) |>
+  kable( format = "pipe")
+
 ##------------ plots ----------------------------------------------------------
 
 ## hypsographs
@@ -310,9 +329,52 @@ p_tree <- ggplot() + geom_segment(data = dat,
   geom_hline(aes(yintercept = 7.35), col = "grey42", lty = "dashed") +
   scale_color_viridis_d("best model", option = "H")
 
+## correlation plot
+cor_all$corr |> as.data.frame() |> mutate(par = rownames(cor_all$corr)) |>
+  pivot_longer(-par) |> ggplot() +
+  geom_point(aes(x = par, y = name, col = value, size = abs(value),
+                 alpha = abs(value))) +
+  xlab("") + ylab("") + theme_pubr(base_size = 16) +
+  geom_hline(data = data.frame(h = seq(0.5,
+                                       length(rownames(cor_all$corr)) + 0.5)),
+             aes(yintercept = h), col = "grey") +
+  geom_vline(data = data.frame(v = seq(0.5,
+                                       length(rownames(cor_all$corr)) + 0.5)),
+             aes(xintercept = v), col = "grey") +
+  theme(axis.text.x=element_text(angle = -90, hjust = 0),
+        legend.position = "right",
+        legend.key.height = unit(0.1, 'npc')) +
+  scale_size_continuous(range  = c(0.1, 10)) +
+  scale_alpha_continuous(range = c(0.5, 1)) +
+  scale_color_viridis_c("", option = "H", direction = -1, limits = c(-1, 1)) +
+  guides(size = "none", alpha = "none")
 
+ggsave("Plots/cor_plot_all_char.png", width = 11, height = 10)
 
 ## PCA
+# pca with all data
+as.data.frame(pca_all$x) |>
+  ggplot() +
+  geom_point(aes(x = PC1, y = PC2), size = 2.75) +
+  geom_text(aes(x = PC1, y = PC2,
+                label = lake_meta$Lake.Short.Name),
+            nudge_x = 0, nudge_y = 0.25) + 
+  geom_segment(data = as.data.frame(pca_all$rotation*10),
+               aes(x = 0, y = 0, xend = PC1, yend = PC2),
+               arrow = arrow(length = unit(0.25, "cm")), col = 2) + 
+  geom_text(data = as.data.frame(pca_all$rotation*10),
+            aes(x = PC1, y = PC2, label = rownames(pca_all$rotation)),
+            col = 2) + thm +
+  scale_color_viridis_d("Cluster") +
+  xlab(paste0("PC1 ( ",
+              round((pca_all$sdev^2/sum(pca_all$sdev^2))[1]*100, 1),
+              "% )")) +
+  ylab(paste0("PC1 ( ",
+              round((pca_all$sdev^2/sum(pca_all$sdev^2))[2]*100, 1),
+              "% )"))
+ggsave("Plots/pca_all_char.png", width = 11, height = 10)
+
+# pca for the subset of selected feature
 pca_dat <- select(dat_clust_norm, -lake) |> prcomp()
 
 p_pca <- as.data.frame(pca_dat$x) |>
@@ -347,7 +409,7 @@ p_bmc <- s_best_all |>
   scale_fill_viridis_d("best model", option = "H") +
   facet_wrap(~best_met)
 
-ggsave("Plots/best_model_per_clust.pdf", width = 13, height = 9)
+ggsave("Plots/best_model_per_clust.png", width = 13, height = 9)
 
 p_rmsec <- s_best_all |>
   left_join(dat_clust) |>
@@ -361,8 +423,8 @@ p_rmsec <- s_best_all |>
   xlab("Cluster") + ylab("")
 
 
-ggsave("Plots/pca_cluster.pdf", p_pca, width = 11, height = 7, bg = "white")
-ggsave("Plots/performance_cluster.pdf", p_rmsec, width = 11, height = 7, bg = "white")
+ggsave("Plots/pca_cluster.png", p_pca, width = 11, height = 7, bg = "white")
+ggsave("Plots/performance_cluster.png", p_rmsec, width = 11, height = 7, bg = "white")
 
 # distributuin of the lake characteristics
 
@@ -400,7 +462,7 @@ p_clst_char <- lapply(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
   }) |> ggarrange(plotlist = _)
 
 
-ggsave("Plots/clust_char.pdf", p_clst_char, width = 11, height = 7, bg = "white")
+ggsave("Plots/clust_char.png", p_clst_char, width = 13, height = 11, bg = "white")
 
 
 ##### Cluster analysis and PCA, clustering by GOF -----
@@ -410,12 +472,22 @@ best_norm_a <- left_join(s_best_all, lake_meta,
                          by = c("lake" = "Lake.Short.Name")) |>
   left_join(kw) |> left_join(hyps_type) |>
   mutate(osgood = mean.depth.m/(sqrt(mean.depth.m))) |>
-  ungroup() |> mutate(across(c(32:35), function(x)(x - min(x) + 1e-4)^(1/3))) |>
-  mutate(across(c(4:24, 30:43, 45),
-                function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+  ungroup() |> select(-par_id, -Country, -Lake.Name, -Lake.Name.Folder,
+                      -kmcluster, -hcluster) |> 
+  mutate(across(contains(c("elevation.m",
+                           "max.depth.m",
+                           "mean.depth.m",
+                           "lake.area.sqkm")),
+                function(x){(x - min(x) + 1e-4)^(1/3)})) |>
+  mutate(across(!contains(c("lake",
+                            "model",
+                            "best_met",
+                            "Reservoir.or.lake.",
+                            "crv")),
+                function(x){(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)}))
 # calculate distance for hirarchical clustering
 distance2 <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(4, 6, 7, 8)) |>
+  select(c(3, 5, 6, 7)) |>
   dist()
 mydata.hclust2 <- hclust(distance2)
 
@@ -427,18 +499,18 @@ labs2 <- dendro_data(as.dendrogram(mydata.hclust2), type = "rectangle")$labels |
 # plot dendogram
 p_tree2 <- ggplot() + geom_segment(data = dat2,
                                    aes(x=x, y=y, xend=xend, yend=yend)) +
-  geom_text(data = labs2, aes(x = x, y = y, label = lake, col = model),
+  geom_text(data = labs2, aes(x = x, y = y, label = lake),
             angle = -90, nudge_y = -1, hjust = 0) + theme_void(base_size = 18) +
   theme(plot.margin = margin(b = 10)) + ylim(-6, 12) +
   geom_hline(aes(yintercept = 5.5), col = "grey42", lty = "dashed") +
   scale_color_viridis_d("best model", option = "H")
 
 
-clust2 <- cutree(mydata.hclust2, h = 5.5)
+clust2 <- cutree(mydata.hclust2, k = 5)
 
 ## PCA
 pca_dat2 <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(4, 5, 6, 8, 10, 30:34, 40, 43:44, 46)) |>
+  select(c(3, 4, 5, 7, 25:28, 30, 38:39, 41)) |>
   mutate(crv = as.numeric(crv)) |> prcomp()
 
 plot(pca_dat2)
