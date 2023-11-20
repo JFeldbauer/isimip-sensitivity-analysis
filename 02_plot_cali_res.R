@@ -17,6 +17,8 @@ library(knitr)
 library(nnet)
 library(data.table)
 
+# source settings script
+source("0_Settings.R")
 # the results from the calibration runs descriptions of the different columns
 # can be found in "data/results_lhc_description.csv"
 res <- read.csv("data/results_lhc.csv")
@@ -30,8 +32,6 @@ best_all_a <- readRDS("data_derived/single_best_model.RDS")
 # data frame with all metrics for best set per lake and per model
 best_all <- readRDS("data_derived/best_par_sets.RDS")
 
-# ggplot theme to be used
-thm <- theme_pubr(base_size = 16) + grids()
 
 ##---------- look at best performing model per lake and metric -----------------
 
@@ -45,12 +45,16 @@ count_best <- res |> group_by(lake) |>
           bias = model[which.min(abs(bias))],
           mae = model[which.min(mae)],
           nmae = model[which.min(nmae)]) |>
-  pivot_longer(-1) |> group_by(value, name) |>
+  pivot_longer(-1) |> 
+  filter(name %in% p_metrics) |>
+  group_by(value, name) |>
   reframe(n = round(n()/73, 3)*100) |>
   rename(Metric = "name", Model = "value") |>
   pivot_wider(id_cols = "Model", names_from = "Metric", values_from = "n") |>
   setNames(c("Model", "bias", "mae", "nmae",
-             "NSE", "r", "RMSE"))
+             "NSE", "r", "RMSE") [c(1, which(c("bias", "mae",
+                                               "nmae", "nse",
+                                               "r", "rmse") %in% p_metrics)+1)])
 
 # create a table that can be copy and pasted into the quarto document
 kable(count_best, format = "pipe")
@@ -65,14 +69,16 @@ res |> group_by(lake) |>
           bias = model[which.min(abs(bias))],
           mae = model[which.min(mae)],
           nmae = model[which.min(nmae)]) |>
-  pivot_longer(-1) |> group_by(lake) |> reframe(n = length(unique(value))) |>
+  pivot_longer(-1) |> filter(name %in% p_metrics) |>
+  group_by(lake) |> reframe(n = length(unique(value))) |>
   ggplot() + geom_histogram(aes(x = n))
 
 
 
 ##--------------- statistical models for best model/performacne ----------------
 # fit multinomial log-linear model 
-dat <- best_all_a |> filter(best_met == "rmse") |> left_join(lake_meta) |>
+dat <- best_all_a |> filter(best_met == "rmse") |>
+  left_join(lake_meta, c("lake" = "Lake.Short.Name")) |>
   mutate(model = factor(model, model, model),
          Reservoir.or.lake. = factor(Reservoir.or.lake.,
          Reservoir.or.lake.,
@@ -114,7 +120,8 @@ ggplot(dat) + geom_point(aes(x = kw, y = lake.area.sqkm, col = model, pch = crv)
 
 ## model best rsme from lake propertiers
 
-rmse_m <- best_all_a |> filter(best_met == "rmse") |>left_join(lake_meta) |>
+rmse_m <- best_all_a |> filter(best_met == "rmse") |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   lm(formula = rmse ~ (kw + elevation.m + max.depth.m +
                lake.area.sqkm + latitude.dec.deg + longitude.dec.deg +
                reldepth_median + months_meas + osgood) * crv)
@@ -128,31 +135,59 @@ summary(rmse_m_step)
 
 
 # distribution of the single best model per lake for all 6 metrics
-p_dist_lake_a <- best_all_a |> pivot_longer(4:9) |> filter(best_met == name) |>
+p_dist_lake_a <- best_all_a |> pivot_longer(!!p_metrics) |>
+  filter(best_met == name) |>
   ggplot() +
   geom_histogram(aes(x = value, y = ..count..),
                  bins = 20, col = 1) +
   thm + xlab("") +
   facet_wrap(~best_met, scales = "free")
 
-ggsave("Plots/best_fit.pdf", p_dist_lake_a, width = 13, height = 7)
+ggsave("Plots/best_fit.png", p_dist_lake_a, width = 13, height = 7)
 
-# a map of the lakes with the location color coded according to the best
+# distribution of the best parameter per model and lake for all 6 metrics
+p_dist_lake <- best_all |> pivot_longer(!!p_metrics) |>
+  filter(best_met == name) |>
+  ggplot() +
+  geom_histogram(aes(x = value, y = ..count..),
+                 bins = 20, col = 1) +
+  thm + xlab("") +
+  facet_grid(model~best_met, scales = "free")
+
+ggsave("Plots/best_fit_model.png", p_dist_lake, width = 13, height = 7)
+
+# same plot but with clusters
+# distribution of the single best model per lake for all 6 metrics
+best_all_a |> pivot_longer(!!p_metrics) |> filter(best_met == name) |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |> 
+  ggplot() +
+  geom_histogram(aes(x = value, y = ..count.., fill = kmcluster),
+                 bins = 20, col = 1) +
+  thm + xlab("") +
+  facet_wrap(~best_met, scales = "free") +
+  scale_fill_viridis_d("Cluster")
+
+ggsave("Plots/best_fit_clust.png", width = 13, height = 7)
+
+ # a map of the lakes with the location color coded according to the best
 # performing model
 world <- map_data("world")
-best_all |> filter(best_met == "rmse") |> left_join(lake_meta) |>
+best_all |> filter(best_met == "rmse") |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   group_by(lake) |> slice(which.min(rmse)) |> ggplot() +
   geom_map(
     data = world, map = world, fill = "grey33",
     aes(map_id = region)
   ) +
   geom_point(aes(y = latitude.dec.deg, x = longitude.dec.deg, col = model),
-             size = 2, position = "jitter") + ylim(-40, 70) +
-  xlim(-150, 180) + theme_void()
+             size = 2, position = "jitter") + ylim(-90, 90) +
+  xlim(-180, 180) + xlab("Longitude") + ylab("Latitude") +
+  theme_pubclean(base_size = 17) + scale_color_viridis_d("RMSE (K)",option = "C")
 
 # a map of the lakes with the location color coded according to the lowest
 # rmse from all four models
-best_all |> filter(best_met == "rmse") |> left_join(lake_meta) |>
+best_all |> filter(best_met == "rmse") |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   group_by(lake) |> slice(which.min(rmse)) |> ggplot() +
   geom_map(
     data = world, map = world, fill = "grey33",
@@ -218,36 +253,38 @@ plot_meta <- function(data, measure = "rmse") {
 
 
 # plot meta data vs best r for each lake and model
-best_all |> filter(best_met == "r") |> left_join(lake_meta) |> 
+best_all |> filter(best_met == "r") |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |> 
   plot_meta(measure = "r")
 
 # same plot but just for the best model per lake
-best_all_a |> filter(best_met == "rmse") |> left_join(lake_meta) |>
+best_all_a |> filter(best_met == "rmse") |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   plot_meta()
 
 
 ##-------- compare models -----------------------
 
-# distribution of rmse along all 2000 parameter sets and 73 lakes
-res |> pivot_longer(4:9) |> ggplot() +
+# distribution of metrics along all 2000 parameter sets and 73 lakes
+res |> pivot_longer(!!p_metrics) |> ggplot() +
   geom_violin(aes(x = model, y = value, fill = model)) + scale_y_log10() +
   facet_wrap(~name, scales = "free_y") + thm + scale_y_log10()
 
 # check if the same models perform good or bad along the four models
-p_mcomp1 <- best_all |> pivot_longer(4:9) |> 
+p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |> 
   group_by(lake, best_met, name) |> filter(best_met == name) |>
   reframe(range = diff(range(value)),
           sd = sd(value,),
           min = min(value),
           max = max(value)) |>
   mutate(range = ifelse(range > 1e3, NA, range)) |>
-  left_join(lake_meta) |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_boxplot(aes(y = range, x = kmcluster, fill = kmcluster)) +
   facet_wrap(~name, scales = "free_y") + thm +
   scale_fill_viridis_d("Cluster") + ylab("Range model performacne") +
   xlab("Cluster") + scale_y_log10()
 
-p_mcomp2 <- best_all |> pivot_longer(4:9) |>
+p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
   group_by(lake, best_met, name) |> filter(best_met == name) |>
   reframe(range = diff(range(value)),
           sd = sd(value),
@@ -259,7 +296,7 @@ p_mcomp2 <- best_all |> pivot_longer(4:9) |>
                             name %in% c("r", "nse") ~ min(value))) |>
   mutate(best = ifelse(best > 1e3, NA, best),
          worst = ifelse(worst > 1e3, NA, worst)) |>
-  left_join(lake_meta) |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_point(aes(x = worst, y = best, col = kmcluster),
                         size = 3) +
   geom_abline(aes(intercept = 0, slope = 1), col = 2, lty = 17) +
@@ -267,18 +304,53 @@ p_mcomp2 <- best_all |> pivot_longer(4:9) |>
   scale_color_viridis_d("Cluster") + xlab("Poorest model performance") +
   ylab("Best model performance") + scale_x_log10() + scale_y_log10()
 
-ggarrange(p_mcomp1, p_mcomp2, common.legend = TRUE)
-ggsave("Plots/best_worst_model.png", width = 21, height = 10, bg = "white")
+
+ggsave("Plots/range_best_model.png", p_mcomp1, width = 13, height = 9,
+       bg = "white")
+
+ggsave("Plots/poorest_best_model.png", p_mcomp2, width = 13, height = 9,
+       bg = "white")
 
 ##-------- relate calibrated parameter values to lake characteristics ----
 
-# plot relating used wind speed scaling factor (of best rmse set) to lake area
+# plot relating used wind speed scaling factor to lake area
 # for each model
-best_all_a |> left_join(lake_meta) |>
+best_all_a |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_point(aes(y = wind_speed,
                             x = lake.area.sqkm,
                             col = model), size = 2) +
   thm + facet_wrap(.~best_met) + scale_x_log10()
+
+best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
+                        col = "grey42") +
+  geom_boxplot(aes(x = kmcluster, y = wind_speed, fill = kmcluster)) +
+  facet_grid(model~best_met) + scale_fill_viridis_d("Cluster") + thm +
+  xlab("Cluster") + ylab("Calibrated wind scaling (-)")
+
+ggsave("Plots/dist_wind_scaling_cluster.png", width = 13, height = 11)
+
+best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
+                        col = "grey42") +
+  geom_boxplot(aes(x = kmcluster, y = swr, fill = kmcluster)) +
+  facet_grid(model~best_met) + scale_fill_viridis_d("Cluster") + thm +
+  xlab("Cluster") + ylab("Calibrated swr scaling (-)")
+
+ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 11)
+
+
+lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
+  best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+    pivot_longer(9:23) |> filter(model == m) |> na.omit() |>
+    ggplot() +
+    geom_boxplot(aes(x = best_met, y = value, fill = kmcluster)) +
+    facet_wrap(~name, scales = "free") + scale_fill_viridis_d("Cluster") +
+    thm + xlab("") + ylab("")}) |>
+  ggarrange(plotlist = _, labels = c("FLake", "GLM", "GOTM", "Simstrat"),
+            common.legend = TRUE)
+
+ggsave("Plots/par_value_cluster.png", width = 30, height = 20, bg = "white")
 
 
 ##### Plot best parameter values vs lake characteristics
