@@ -152,7 +152,7 @@ kw <- best_all |> group_by(lake) |> reframe(kw = mean(Kw),
 
 # Calculate volume-development parameter (Hakanson, 1981)
 
-# Volume equation (Ana Ayala)
+# Volume equation from(Ana Ayala)
 volume_from_hyps <- function(depths, areas, return_total = T){
   if(length(depths) != length(areas)){
     stop("'depths' and 'areas' arguments need to be same length!")
@@ -275,8 +275,7 @@ k <- 2:10
 avg_sil <- sapply(k, silhouette_score, select(dat_clust_norm, -lake))
 plot(k, type='b', avg_sil, xlab='Number of clusters',
      ylab='Average Silhouette Scores', frame=FALSE)
-# number of clusters to create
-nclust <- 5
+
 # number of cluster for kmeans clustering
 nkmclust <- nclust
 
@@ -304,8 +303,8 @@ lake_meta_desc <- mutate(lake_meta_desc,
                                               column_name)) |>
   rbind(data.frame(column_name = c("kw", "vd", "osgood"),
                                    description = c("Average calibrated light extinction factor",
-                                                   "Volume development",
-                                                   "Osgood index"),
+                                                   "Volume development (Hakanson, 1981)",
+                                                   "Osgood index (Osgood, 1988)"),
                                    short_description = c("Kw",
                                                          "hyps.",
                                                          "Osgood index"),
@@ -492,74 +491,3 @@ p_clst_char <- lapply(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
 
 ggsave("Plots/clust_char.png", p_clst_char, width = 13, height = 11, bg = "white")
 
-
-##### Cluster analysis and PCA, clustering by GOF -----
-
-# z-score normalize data for single best model
-best_norm_a <- left_join(s_best_all, lake_meta,
-                         by = c("lake" = "Lake.Short.Name")) |>
-  left_join(kw) |> left_join(hyps_type) |>
-  mutate(osgood = mean.depth.m/(sqrt(mean.depth.m))) |>
-  ungroup() |> select(-par_id, -Country, -Lake.Name, -Lake.Name.Folder,
-                      -kmcluster, -hcluster) |> 
-  mutate(across(contains(c("elevation.m",
-                           "max.depth.m",
-                           "mean.depth.m",
-                           "lake.area.sqkm")),
-                function(x){(x - min(x) + 1e-4)^(1/3)})) |>
-  mutate(across(!contains(c("lake",
-                            "model",
-                            "best_met",
-                            "Reservoir.or.lake.",
-                            "crv")),
-                function(x){(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)}))
-# calculate distance for hirarchical clustering
-distance2 <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(3, 5, 6, 7)) |>
-  dist()
-mydata.hclust2 <- hclust(distance2)
-
-# extract data for plotting with ggplot2
-dat2 <- dendro_data(as.dendrogram(mydata.hclust2), type = "rectangle")$segments
-labs2 <- dendro_data(as.dendrogram(mydata.hclust2), type = "rectangle")$labels |>
-  arrange(as.numeric(label)) |> cbind(filter(best_norm_a, best_met == "rmse")[, 2:3])
-
-# plot dendogram
-p_tree2 <- ggplot() + geom_segment(data = dat2,
-                                   aes(x=x, y=y, xend=xend, yend=yend)) +
-  geom_text(data = labs2, aes(x = x, y = y, label = lake),
-            angle = -90, nudge_y = -1, hjust = 0) + theme_void(base_size = 18) +
-  theme(plot.margin = margin(b = 10)) + ylim(-6, 12) +
-  geom_hline(aes(yintercept = 5.5), col = "grey42", lty = "dashed") +
-  scale_color_viridis_d("best model", option = "H")
-
-
-clust2 <- cutree(mydata.hclust2, k = 5)
-
-## PCA
-pca_dat2 <- filter(best_norm_a, best_met == "rmse") |>
-  select(c(3, 4, 5, 7, 25:28, 30, 38:39, 41)) |>
-  prcomp()
-
-plot(pca_dat2)
-biplot(pca_dat2)
-
-p_pca2 <- as.data.frame(pca_dat2$x) |> cbind(clust2) |>
-  mutate(clust = factor(clust2)) |> ggplot() +
-  geom_point(aes(x = PC1, y = PC2, col = clust), size = 2.75) +
-  geom_text(aes(x = PC1, y = PC2, col = clust,
-                label = dat_clust$lake),
-            nudge_x = 0, nudge_y = 0.5) + 
-  geom_segment(data = as.data.frame(pca_dat2$rotation*10),
-               aes(x = 0, y = 0, xend = PC1, yend = PC2),
-               arrow = arrow(length = unit(0.25, "cm"))) + 
-  geom_text(data = as.data.frame(pca_dat2$rotation*10),
-            aes(x = PC1, y = PC2, label = rownames(pca_dat2$rotation)),
-            col = "grey42") + theme_minimal(base_size = 18) +
-  scale_color_viridis_d("Cluster") +
-  xlab(paste0("PC1 ( ",
-              round((pca_dat2$sdev^2/sum(pca_dat2$sdev^2))[1]*100, 1),
-              "% )")) +
-  ylab(paste0("PC2 ( ",
-              round((pca_dat2$sdev^2/sum(pca_dat2$sdev^2))[2]*100, 1),
-              "% )"))
