@@ -86,7 +86,7 @@ dat <- best_all_a |> filter(best_met == "rmse") |>
 
 dat$model <- relevel(dat$model, ref = "Simstrat")
 test <- multinom(model ~ kw + elevation.m + max.depth.m +
-                   lake.area.sqkm + latitude.dec.deg + longitude.dec.deg + crv,
+                   lake.area.sqkm + latitude.dec.deg + longitude.dec.deg + vd,
                  data = dat)
 summary(test)
 exp(coef(test))
@@ -103,18 +103,18 @@ pdat <- expand_grid(kw = seq(min(dat$kw), max(dat$kw), length.out = 5),
                                          length.out = 20),
                     latitude.dec.deg = mean(dat$latitude.dec.deg),
                     longitude.dec.deg = mean(dat$longitude.dec.deg),
-                    crv = levels(dat$crv))
+                    vd = mean(dat$vd))
   
 
 res_m <- predict(test, newdata = pdat, "probs")
 res_m <- cbind(res_m, pdat) |> pivot_longer(1:4)
 
 res_m |> ggplot() + geom_line(aes(x = lake.area.sqkm, y = value, col = name)) +
-  facet_grid(crv~kw)
+  facet_grid(.~kw)
 
 ## estimate performance metric based upon lake characteristics
 
-ggplot(dat) + geom_point(aes(x = kw, y = lake.area.sqkm, col = model, pch = crv)) +
+ggplot(dat) + geom_point(aes(x = kw, y = lake.area.sqkm, col = model)) +
   scale_y_log10() + scale_x_log10()
 
 
@@ -124,7 +124,7 @@ rmse_m <- best_all_a |> filter(best_met == "rmse") |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   lm(formula = rmse ~ (kw + elevation.m + max.depth.m +
                lake.area.sqkm + latitude.dec.deg + longitude.dec.deg +
-               reldepth_median + months_meas + osgood) * crv)
+               reldepth_median + months_meas + osgood + vd))
 
 rmse_m_step <- step(rmse_m)
 

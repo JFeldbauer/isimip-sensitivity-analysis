@@ -150,16 +150,49 @@ saveRDS(s_best_all, "data_derived/single_best_model.RDS")
 kw <- best_all |> group_by(lake) |> reframe(kw = mean(Kw),
                                             kw_sd = sd(Kw)) |> ungroup()
 
+# Calculate volume-development parameter (Hakanson, 1981)
 
-# categorize lake by hypsography in three groups: convex, concave, neither
-hyps_type <- hyps |> group_by(lake) |> mutate(area = area/max(area),
-                                              level = 1 - depth/max(depth)) |>
-  mutate(crv = case_when(mean(area - level < -0.025) >= 0.66 ~ "concave",
-                         mean(area - level > 0.025) >= 0.66 ~ "convex",
-                         .default = "neither")) |>
-  mutate(crv = factor(crv, crv, crv)) |>
-  select(lake, crv) |>
-  group_by(lake) |> slice_head(n = 1) |> ungroup()
+# Volume equation (Ana Ayala)
+volume_from_hyps <- function(depths, areas, return_total = T){
+  if(length(depths) != length(areas)){
+    stop("'depths' and 'areas' arguments need to be same length!")
+  }
+  if(length(depths) < 3) stop("Arguments need to have at least length 3")
+  
+  depths <- abs(depths)
+  
+  # vol[m3]
+  vol <- rep(NA, length.out = length(depths))
+  for(i in 2:length(depths)){
+    vol[i] <- (1/3) * (depths[i] - depths[i - 1]) *
+      (areas[i - 1] + areas[i] + (sqrt(areas[i - 1]) * sqrt(areas[i])))
+  }
+  
+  vol <- vol[!is.na(vol)]
+  
+  if(return_total){
+    return(sum(vol))
+  }else{
+    return(vol)
+  }
+}
+
+# Vd = 3 * mean_depth / max_depth
+setDT(hyps)
+vd <- hyps[, .(vd = 3 * volume_from_hyps(depth, area) / max(area) / max(depth)),
+           by = lake]
+hyps <- as_tibble(hyps)
+
+# # Old code: hypsograph categories:
+# # categorize lake by hypsography in three groups: convex, concave, neither
+# hyps_type <- hyps |> group_by(lake) |> mutate(area = area/max(area),
+#                                               level = 1 - depth/max(depth)) |>
+#   mutate(crv = case_when(mean(area - level < -0.025) >= 0.66 ~ "concave",
+#                          mean(area - level > 0.025) >= 0.66 ~ "convex",
+#                          .default = "neither")) |>
+#   mutate(crv = factor(crv, crv, crv)) |>
+#   select(lake, crv) |>
+#   group_by(lake) |> slice_head(n = 1) |> ungroup()
 
 
 ## calculate Osgood Index
@@ -169,7 +202,7 @@ lake_meta <- lake_meta |> mutate(osgood = mean.depth.m/(sqrt(mean.depth.m)))
 
 # gather lake meta data for clustering
 lake_meta <- lake_meta |> left_join(kw, by = c("Lake.Short.Name" = "lake")) |>
-  left_join(hyps_type, by = c("Lake.Short.Name" = "lake")) |>
+  left_join(vd, by = c("Lake.Short.Name" = "lake")) |>
   left_join(lake_av_temp, by = c("Lake.Short.Name" = "lake")) |>
   mutate(Reservoir.or.lake. = factor(Reservoir.or.lake.)) 
 
@@ -177,15 +210,14 @@ lake_meta <- lake_meta |> left_join(kw, by = c("Lake.Short.Name" = "lake")) |>
 lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Country,
                     -Average.Secchi.disk.depth.m,
                     -Light.extinction.coefficient.m, -kw_sd, -tsurf_sd,
-                    - depth_meas, -tbot_sd) |>
-  mutate(crv = as.numeric(crv),
-         Reservoir.or.lake. = as.numeric(Reservoir.or.lake.)) |>
+                    -depth_meas, -tbot_sd) |>
+  mutate(Reservoir.or.lake. = as.numeric(Reservoir.or.lake.)) |>
   pivot_longer(-1) |> ggplot() + geom_histogram(aes(x = value)) +
   facet_wrap(~name, scales = "free_x")
 
 # correlation plot
 cor_all <- lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, -Country,
-                    -crv, -Reservoir.or.lake., -Average.Secchi.disk.depth.m,
+                    -Reservoir.or.lake., -Average.Secchi.disk.depth.m,
                     -Light.extinction.coefficient.m, -kw_sd, -tsurf_sd,
                     -tbot_sd) |>
   cor() |> corrplot::corrplot()
@@ -202,11 +234,9 @@ pca_all <- lake_meta |> select(-Lake.Name, -Lake.Name.Folder, -Lake.Short.Name, 
                            "lake.area.sqkm")),
                 function(x)(log10(x - min(x) + 1)))) |> # log transform
   mutate(across(!contains(c("lake",
-                           "Reservoir.or.lake.",
-                           "crv")),
+                           "Reservoir.or.lake.")),
                 function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE))) |>
-  mutate(Reservoir.or.lake. = as.numeric(Reservoir.or.lake.),
-         crv = as.numeric(crv)) |>
+  mutate(Reservoir.or.lake. = as.numeric(Reservoir.or.lake.)) |>
   prcomp()
 
 biplot(pca_all)
@@ -217,7 +247,7 @@ dat_clust <- lake_meta |>
   select(-Lake.Name, -Lake.Name.Folder, -Country, -Average.Secchi.disk.depth.m,
          -Light.extinction.coefficient.m, -months_median, -elevation.m,
          -depth_meas, -kw_sd, -tsurf_sd, -tbot_sd, -Reservoir.or.lake.,
-         -tbot, -min_tsurf, -max.depth.m, -osgood, -crv) |>
+         -tbot, -min_tsurf, -max.depth.m, -osgood) |>
   rename(lake = "Lake.Short.Name")
   
 
@@ -230,8 +260,7 @@ dat_clust_norm <- dat_clust |>
                            "lake.area.sqkm")),
                 function(x)(log10(x - min(x) + 1)))) |> # log transfomr
   mutate(across(!contains(c("lake",
-                            "Reservoir.or.lake.",
-                            "crv")),
+                            "Reservoir.or.lake.")),
                 function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
 
 
@@ -273,9 +302,9 @@ lake_meta_desc <- mutate(lake_meta_desc,
                          column_name = ifelse(column_name == "Lake.Short.Name",
                                               "lake",
                                               column_name)) |>
-  rbind(data.frame(column_name = c("kw", "crv", "osgood"),
+  rbind(data.frame(column_name = c("kw", "vd", "osgood"),
                                    description = c("Average calibrated light extinction factor",
-                                                   "Curvature type",
+                                                   "Volume development",
                                                    "Osgood index"),
                                    short_description = c("Kw",
                                                          "hyps.",
@@ -304,10 +333,10 @@ filter(lake_meta_desc, column_name %in% char_tested) |>
 
 ## hypsographs
 # plot all hypsographs and their hypsographic type
-p_hyps <- hyps |> left_join(hyps_type) |> group_by(lake) |>
+p_hyps <- hyps |> left_join(vd) |> group_by(lake) |>
   mutate(area = area/max(area),
          level = 1 - depth/max(depth)) |>ungroup() |>
-  ggplot() + geom_line(aes(y = area, x = level, col = crv),
+  ggplot() + geom_line(aes(y = area, x = level, col = vd),
                        lwd = 1.5) +
   facet_wrap(~lake) + coord_flip() +
   geom_abline(aes(slope = 1, intercept = 0), col = "black", lty = 15) +
@@ -439,7 +468,7 @@ p_clst_char <- lapply(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
     p <- dat |> table() |> as.data.frame() |> group_by(kmcluster) |>
        ggplot() +
       geom_col(aes_string(fill = c, y = "Freq", x = "kmcluster")) +
-      scale_fill_viridis_d(desc, option = ifelse(c == "crv", "G", "E")) +
+      # scale_fill_viridis_d(desc, option = ifelse(c == "vd", "G", "E")) +
       xlab("") + thm +
       theme(legend.position = "top") + guides(fill=guide_legend(ncol=2))
   } else {
@@ -460,7 +489,6 @@ p_clst_char <- lapply(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
   }
   return(p)
   }) |> ggarrange(plotlist = _)
-
 
 ggsave("Plots/clust_char.png", p_clst_char, width = 13, height = 11, bg = "white")
 
@@ -511,7 +539,7 @@ clust2 <- cutree(mydata.hclust2, k = 5)
 ## PCA
 pca_dat2 <- filter(best_norm_a, best_met == "rmse") |>
   select(c(3, 4, 5, 7, 25:28, 30, 38:39, 41)) |>
-  mutate(crv = as.numeric(crv)) |> prcomp()
+  prcomp()
 
 plot(pca_dat2)
 biplot(pca_dat2)
