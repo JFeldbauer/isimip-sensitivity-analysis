@@ -488,9 +488,7 @@ p_clst_char <- lapply(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
     p <- p + scale_y_log10()
   }
   return(p)
-  })
-ggarrange(plotlist = p_clst_char)
-
+  }) |> ggarrange(plotlist = _)
 
 ggsave("Plots/clust_char.png", p_clst_char, width = 13, height = 11, bg = "white")
 
