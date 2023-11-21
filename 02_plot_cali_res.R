@@ -176,28 +176,19 @@ best_all |> filter(best_met == "rmse") |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   group_by(lake) |> slice(which.min(rmse)) |> ggplot() +
   geom_map(
-    data = world, map = world, fill = "grey33",
+    data = world, map = world, fill = alpha("#b36b00", 0.666),
     aes(map_id = region)
   ) +
-  geom_point(aes(y = latitude.dec.deg, x = longitude.dec.deg, col = model),
-             size = 2, position = "jitter") + ylim(-90, 90) +
+  geom_point(aes(y = latitude.dec.deg, x = longitude.dec.deg, fill = kmcluster),
+             size = 4, pch = 23, color = "white") + ylim(-90, 90) +
   xlim(-180, 180) + xlab("Longitude") + ylab("Latitude") +
-  theme_pubclean(base_size = 17) + scale_color_viridis_d("RMSE (K)",option = "C")
+  theme_minimal(base_size = 17) + scale_fill_viridis_d("Cluster") +
+  theme(panel.background = element_rect(fill = '#9fbfdf'),
+        panel.grid.major = element_line(color = 'black', linetype = 'dotted'),
+        panel.grid.minor = element_blank(),
+        legend.position = "top")
 
-# a map of the lakes with the location color coded according to the lowest
-# rmse from all four models
-best_all |> filter(best_met == "rmse") |>
-  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
-  group_by(lake) |> slice(which.min(rmse)) |> ggplot() +
-  geom_map(
-    data = world, map = world, fill = "grey33",
-    aes(map_id = region)
-  ) +
-  geom_point(aes(y = latitude.dec.deg, x = longitude.dec.deg, col = rmse),
-             size = 2, position = "jitter") + ylim(-90, 90) +
-  xlim(-180, 180) + xlab("Longitude") + ylab("Latitude") +
-  theme_pubclean(base_size = 17) + scale_color_viridis_c("RMSE (K)",option = "C")
-
+ggsave("Plots/mapisimip.png", width = 11, height = 7, bg = "white")
 
 ## function that plots relating min RMSE to lake characteristics
 plot_meta <- function(data, measure = "rmse") {
@@ -342,7 +333,8 @@ ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 11)
 
 lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
   best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
-    pivot_longer(9:23) |> filter(model == m) |> na.omit() |>
+    pivot_longer(cols = !!par_names) |> filter(model == m) |>
+    select(best_met, value, kmcluster, name) |> na.omit() |>
     ggplot() +
     geom_boxplot(aes(x = best_met, y = value, fill = kmcluster)) +
     facet_wrap(~name, scales = "free") + scale_fill_viridis_d("Cluster") +
@@ -359,8 +351,8 @@ df_best_rmse = best_all |> filter(best_met == "rmse") |>
   left_join(lm, by = c("lake" = "Lake.Short.Name")) |>data.table()
 
 
-cal_pars = names(df_best_rmse)[10:24]
-lake_chars = names(df_best_rmse)[c(30, 33, 35, 36, 39)]
+cal_pars = par_names
+lake_chars = names(df_best_rmse)[c(28, 31, 33, 34, 37)]
 
 plts = list()
 for(i in lake_chars){

@@ -142,7 +142,7 @@ res_gip <- res |> group_by(lake, model, var) |> filter(delta != 0 & S1 != 0) |>
           par_S1_1 = paste0(names[S1 %in% gmiv(S1, 1)], collapse = ", "),
           n_par_S1_1 = length(names[S1 %in% gmiv(S1, 1)]))
 
-# plot distribution of most senstitive parameters over all lakes and models
+# plot distribution of most sensitive parameters over all lakes and models
 # for both measures
 delta_gip <- res_gip |> pivot_longer(seq(4, 14, by = 2)) |>
   filter(grepl("par_d_.*", name)) |>
@@ -179,6 +179,7 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
 
 ggsave("Plots/freq_sens_clust.png", width = 14, height = 11)
 
+# same buit sum up the different performacne metrics
 rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
   left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_histogram(aes(x = par,  fill = meas),
@@ -212,6 +213,7 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
   ggplot() + geom_tile(aes(x = n,  y = frac, fill = cnt)) + 
   facet_grid(var~model) + theme_pubr(base_size = 17) + grids() +
   scale_fill_viridis_c("count", option = "C") +
+  ylab("Fraction of total sum") +
   xlab("Number of parameters contributing")
 
 ggsave("Plots/count_imp_par2.png", width = 14, height = 11)
@@ -220,7 +222,7 @@ ggsave("Plots/count_imp_par2.png", width = 14, height = 11)
 res |> group_by(lake, var, model) |>
   mutate(no_sens = all(delta[names != "dummy"] <= delta[names == "dummy"]) ||
            all(S1[names != "dummy"] <= S1[names == "dummy"])) |>
-  filter(no_sens) |> select(lake) |> unique() |> View() # only happens for nmae
+  filter(no_sens) |> select(lake) |> unique()  # only happens for nmae
 
 # correlation between S1 and delta
 res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
