@@ -16,6 +16,7 @@ library(ggpubr)
 library(knitr)
 library(nnet)
 library(data.table)
+library(egg)
 
 # source settings script
 source("0_Settings.R")
@@ -58,6 +59,8 @@ count_best <- res |> group_by(lake) |>
 
 # create a table that can be copy and pasted into the quarto document
 kable(count_best, format = "pipe")
+
+
 
 # look at the distribution of number of different best performing models over the
 # different metrics
@@ -134,23 +137,70 @@ summary(rmse_m_step)
 ##--------------- plots looking at the best performing parameter set -------------
 
 
-# distribution of the single best model per lake for all 6 metrics
+# distribution of the single best model per lake for all metrics
 p_dist_lake_a <- best_all_a |> pivot_longer(!!p_metrics) |>
   filter(best_met == name) |>
   ggplot() +
   geom_histogram(aes(x = value, y = ..count..),
-                 bins = 20, col = 1) +
+                 bins = 30, col = 1) +
   thm + xlab("") +
   facet_wrap(~best_met, scales = "free")
 
 ggsave("Plots/best_fit.png", p_dist_lake_a, width = 13, height = 7)
 
-# distribution of the best parameter per model and lake for all 6 metrics
+# plot with pie charts
+p <- list()
+for(m in p_metrics) {
+  
+  p_dtmp <-  best_all_a |> pivot_longer(!!p_metrics) |>
+    filter(best_met == name & best_met == m) |>
+    ggplot() +
+    geom_histogram(aes(x = value, y = ..count..),
+                   bins = 30, col = 1) +
+    thm + xlab("") +
+    facet_wrap(~best_met, scales = "free")
+  
+  p_pie <- count_best |> setNames(c("Model", p_metrics)) |>
+    pivot_longer(!!m) |> arrange(rev(Model)) |> ggplot() +
+    geom_col(aes(x = "", y = value, fill = Model),
+             col = "grey42") +
+    geom_text(aes(x = "", y = value, label = paste0(value ,"%")),
+              position = position_stack(vjust=0.5), size = 2.5) +
+    coord_polar("y", start = 0) + theme_void(base_size = 11) +
+    labs(x = NULL, y = NULL, fill = NULL) +
+    theme(legend.position = "right",
+          plot.margin = margin(0,0,0,0),
+          legend.key.height = unit(0.3, "cm"),
+          legend.key.width = unit(0.3, "cm"))
+  
+  # combine the two previous plots
+  
+  xrng <- layer_scales(p_dtmp)$x$range$range
+  yrng <- layer_scales(p_dtmp)$y$range$range
+  
+  p[[m]] <- p_dtmp + annotation_custom(ggplotGrob(p_pie),
+                                       xmin = ifelse(m == "rmse",
+                                                     mean(xrng) + 0.1*diff(xrng),
+                                                     min(xrng) - 0.1*diff(xrng)),
+                                       xmax = ifelse(m == "rmse",
+                                                     max(xrng) + 0.1*diff(xrng),
+                                                     mean(xrng) - 0.1*diff(xrng)),
+                                       ymin = mean(yrng),
+                                       ymax = max(yrng) + 0.075*diff(yrng))
+  
+  
+  
+}
+
+p_pie <- ggarrange(plots = p, ncol = 2, nrow = 2)
+ggsave("Plots/best_fit_pie.png", p_pie, width = 13, height = 7)
+
+# distribution of the best parameter per model and lake for all metrics
 p_dist_lake <- best_all |> pivot_longer(!!p_metrics) |>
   filter(best_met == name) |>
   ggplot() +
   geom_histogram(aes(x = value, y = ..count..),
-                 bins = 20, col = 1) +
+                 bins = 30, col = 1) +
   thm + xlab("") +
   facet_grid(model~best_met, scales = "free")
 
