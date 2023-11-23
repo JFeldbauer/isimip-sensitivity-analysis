@@ -19,3 +19,7 @@ par_names <- c("wind_speed", "swr", "Kw", "c_relax_C", "fetch_lk",
                "depth_bs_lk", "mixing.coef_mix_hyp", "mixing.coef_mix_conv",
                "mixing.coef_mix_turb", "turb_param.k_min", "bottom.h0b",
                "turb_param.const_num", "a_seiche", "hgeo", "cd")
+
+
+# included models
+models_used <- c("FLake", "GLM", "GOTM", "Simstrat")
