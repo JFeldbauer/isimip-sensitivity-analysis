@@ -165,7 +165,7 @@ for(m in p_metrics) {
     geom_col(aes(x = "", y = value, fill = Model),
              col = "grey42") +
     geom_text(aes(x = "", y = value, label = paste0(value ,"%")),
-              position = position_stack(vjust=0.5), size = 2.5) +
+              position = position_stack(vjust=0.5), size = 3.5) +
     coord_polar("y", start = 0) + theme_void(base_size = 11) +
     labs(x = NULL, y = NULL, fill = NULL) +
     theme(legend.position = "right",
@@ -243,42 +243,42 @@ ggsave("Plots/mapisimip.png", width = 11, height = 7, bg = "white")
 ## function that plots relating min RMSE to lake characteristics
 plot_meta <- function(data, measure = "rmse") {
   p_meta1 <- ggplot(data) + geom_point(aes_string(x = "mean.depth.m", y = measure, col = "model")) +
-    scale_x_log10() + ggtitle("min RMSE vs. mean lake depth") + thm + xlab("Mean lake depth (m)") +
-    ylab("RMSE (K)")
+    scale_x_log10() + ggtitle(paste("best", measure, "vs. mean lake depth")) + thm + xlab("Mean lake depth (m)") +
+    ylab(measure)
   
   p_meta2 <- ggplot(data) + geom_point(aes_string(x = "lake.area.sqkm", y = measure, col = "model")) +
-    scale_x_log10() + ggtitle("min RMSE vs. lake area") + thm + xlab("Lake Area (km²)") +
-    ylab("RMSE (K)")
+    scale_x_log10() + ggtitle(paste("best", measure, "vs. lake area")) + thm + xlab("Lake Area (km²)") +
+    ylab(measure)
   
   p_meta3 <- ggplot(data) + geom_point(aes_string(x = "latitude.dec.deg", y = measure, col = "model")) +
-    scale_x_log10() + ggtitle("min RMSE vs.latitude") + thm + xlab("Latitude (°N)") +
-    ylab("RMSE (K)")
+    ggtitle(paste("best", measure, "vs.latitude")) + thm + xlab("Latitude (°N)") +
+    ylab(measure)
   
   p_meta4 <- ggplot(data) + geom_point(aes_string(x = "longitude.dec.deg", y = measure, col = "model")) +
-    scale_x_log10() + ggtitle("min RMSE vs.longitude") + thm + xlab("Longitude (°E)") +
-    ylab("RMSE (K)")
+    ggtitle(paste("best", measure, "vs.longitude")) + thm + xlab("Longitude (°E)") +
+    ylab(measure)
   
   
   p_meta6 <- ggplot(data) + geom_point(aes_string(x = "elevation.m", y = measure, col = "model")) +
-    scale_x_log10() + ggtitle("min RMSE vs. elevation") + thm + xlab("Lake elevation (m asl)") +
-    ylab("RMSE (K)")
+    ggtitle(paste("best", measure, "vs. elevation")) + thm + xlab("Lake elevation (m asl)") +
+    ylab(measure)
   
   p_meta7 <- ggplot(data) + geom_point(aes_string(x = "kw", y = measure, col = "model")) +
-    ggtitle("min RMSE vs. Secchi disk depth") + thm + xlab("Average Kw value (1/m)") +
-    ylab("RMSE (K)")
+    ggtitle(paste("best", measure, "vs. Secchi disk depth")) + thm + xlab("Average Kw value (1/m)") +
+    ylab(measure)
   
   
   p_meta8 <- ggplot(data) + geom_point(aes_string(x = "months_meas", y = measure, col = "model")) +
-    ggtitle("min RMSE vs. no. months with obs") + thm + xlab("Months with observations (-)") +
-    ylab("RMSE (K)")
+    ggtitle(paste("best", measure, "vs. no. months with obs")) + thm + xlab("Months with observations (-)") +
+    ylab(measure)
   
   
   p_meta10 <- ggplot(data) + geom_point(aes_string(x = "reldepth_median", y = measure, col = "model")) +
-    ggtitle("min RMSE vs. relative depth of most obs") + thm + xlab("center of relative depth (-)") +
-    ylab("RMSE (K)")
+    ggtitle(paste("best", measure, "vs. relative depth of most obs")) + thm + xlab("center of relative depth (-)") +
+    ylab(measure)
   
   
-  p1_meta <- ggarrange(p_meta1,
+  p1_meta <- ggpubr::ggarrange(p_meta1,
                        p_meta2,
                        p_meta3,
                        p_meta6,
@@ -286,7 +286,7 @@ plot_meta <- function(data, measure = "rmse") {
                        p_meta4,
                        ncol = 3, nrow = 2, common.legend = TRUE)
   
-  p2_meta <- ggarrange(p_meta8,
+  p2_meta <- ggpubr::ggarrange(p_meta8,
                        p_meta10,
                        ncol = 2, nrow = 2, common.legend = TRUE)
   return(list(p1_meta, p2_meta))
@@ -320,10 +320,12 @@ p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |>
           max = max(value)) |>
   mutate(range = ifelse(range > 1e3, NA, range)) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
-  ggplot() + geom_boxplot(aes(y = range, x = kmcluster, fill = kmcluster)) +
+  ggplot() + geom_violin(aes(y = range, x = kmcluster, fill = kmcluster)) +
+  geom_point(aes(y = range, x = kmcluster), col = alpha("grey42", 0.666),
+             size = 3.5) +
   facet_wrap(~name, scales = "free_y") + thm +
   scale_fill_viridis_d("Cluster") + ylab("Range model performacne") +
-  xlab("Cluster") + scale_y_log10()
+  xlab("Cluster")
 
 p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
   group_by(lake, best_met, name) |> filter(best_met == name) |>
@@ -343,13 +345,36 @@ p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
   geom_abline(aes(intercept = 0, slope = 1), col = 2, lty = 17) +
   facet_wrap(~name, scales = "free") + thm +
   scale_color_viridis_d("Cluster") + xlab("Poorest model performance") +
-  ylab("Best model performance") + scale_x_log10() + scale_y_log10()
+  ylab("Best model performance")
+
+
+p_mcomp3 <- best_all |> pivot_longer(!!p_metrics) |>
+  group_by(lake, best_met, name) |> filter(best_met == name) |>
+  reframe(range = diff(range(value)),
+          sd = sd(value),
+          best = case_when(name == "bias" ~ min(abs(value)),
+                           name %in% c("mae", "nmae", "rmse") ~ min(value),
+                           name %in% c("r", "nse") ~ max(value)),
+          worst = case_when(name == "bias" ~ max(abs(value)),
+                            name %in% c("mae", "nmae", "rmse") ~ max(value),
+                            name %in% c("r", "nse") ~ min(value))) |>
+  mutate(best = ifelse(best > 1e3, NA, best),
+         worst = ifelse(worst > 1e3, NA, worst)) |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_point(aes(x = best, y = range, col = kmcluster),
+                        size = 3) +
+  facet_wrap(~name, scales = "free") + thm +
+  scale_color_viridis_d("Cluster") + ylab("Range model performacne") +
+  xlab("Best model performance")
 
 
 ggsave("Plots/range_best_model.png", p_mcomp1, width = 13, height = 9,
        bg = "white")
 
 ggsave("Plots/poorest_best_model.png", p_mcomp2, width = 13, height = 9,
+       bg = "white")
+
+ggsave("Plots/best_model_range.png", p_mcomp3, width = 13, height = 9,
        bg = "white")
 
 ##-------- relate calibrated parameter values to lake characteristics ----
@@ -366,7 +391,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
   geom_boxplot(aes(x = kmcluster, y = wind_speed, fill = kmcluster)) +
-  facet_grid(model~best_met) + scale_fill_viridis_d("Cluster") + thm +
+  facet_grid(best_met~model) + scale_fill_viridis_d("Cluster") + thm +
   xlab("Cluster") + ylab("Calibrated wind scaling (-)")
 
 ggsave("Plots/dist_wind_scaling_cluster.png", width = 13, height = 11)
@@ -375,7 +400,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
   geom_boxplot(aes(x = kmcluster, y = swr, fill = kmcluster)) +
-  facet_grid(model~best_met) + scale_fill_viridis_d("Cluster") + thm +
+  facet_grid(best_met~model) + scale_fill_viridis_d("Cluster") + thm +
   xlab("Cluster") + ylab("Calibrated swr scaling (-)")
 
 ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 11)
@@ -389,7 +414,7 @@ lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
     geom_boxplot(aes(x = best_met, y = value, fill = kmcluster)) +
     facet_wrap(~name, scales = "free") + scale_fill_viridis_d("Cluster") +
     thm + xlab("") + ylab("")}) |>
-  ggarrange(plotlist = _, labels = c("FLake", "GLM", "GOTM", "Simstrat"),
+  ggpubr::ggarrange(plotlist = _, labels = c("FLake", "GLM", "GOTM", "Simstrat"),
             common.legend = TRUE)
 
 ggsave("Plots/par_value_cluster.png", width = 30, height = 20, bg = "white")
@@ -420,7 +445,7 @@ for(i in lake_chars){
     plts2[[length(plts2) + 1]] = p
   }
   
-  p_i = ggarrange(plotlist = plts2, common.legend = T, align = "hv")
+  p_i = ggpubr::ggarrange(plotlist = plts2, common.legend = T, align = "hv")
   
   plts[[length(plts) + 1]] = p_i
 }

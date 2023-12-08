@@ -12,7 +12,7 @@ p_metrics <- c("bias",
                "rmse")
 
 # number of clusters to create
-nclust <- 4
+nclust <- 5
 
 # names of the parameter that were calibrated
 par_names <- c("wind_speed", "swr", "Kw", "c_relax_C", "fetch_lk",
