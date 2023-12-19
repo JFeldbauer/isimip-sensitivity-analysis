@@ -245,9 +245,9 @@ biplot(pca_all)
 # only select a subset of meta charcteristics
 dat_clust <- lake_meta |>
   select(-Lake.Name, -Lake.Name.Folder, -Country, -Average.Secchi.disk.depth.m,
-         -Light.extinction.coefficient.m, -months_median, -elevation.m,
-         -depth_meas, -kw_sd, -tsurf_sd, -tbot_sd, -Reservoir.or.lake.,
-         -tbot, -min_tsurf, -max.depth.m, -osgood) |>
+         -Light.extinction.coefficient.m, 
+         -depth_meas, -kw_sd, -tsurf_sd, -tbot_sd) |>
+         #-tbot, -min_tsurf, -max.depth.m, -osgood, -months_median, -Reservoir.or.lake.) |>
   rename(lake = "Lake.Short.Name")
   
 
@@ -261,7 +261,8 @@ dat_clust_norm <- dat_clust |>
                 function(x)(log10(x - min(x) + 1)))) |> # log transfomr
   mutate(across(!contains(c("lake",
                             "Reservoir.or.lake.")),
-                function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)))
+                function(x)(x-mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)),
+         across(contains("Reservoir.or.lake."), function(x)as.numeric(x)))
 
 
 ## kmeans clustering
@@ -437,7 +438,7 @@ p_bmc <- s_best_all |>
   scale_fill_viridis_d("best model", option = "H") +
   facet_wrap(~best_met)
 
-ggsave("Plots/best_model_per_clust.png", width = 13, height = 9)
+ggsave("Plots/best_model_per_clust.png", p_bmc, width = 13, height = 9)
 
 p_rmsec <- s_best_all |>
   left_join(dat_clust) |>
@@ -487,7 +488,7 @@ p_clst_char <- lapply(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
     p <- p + scale_y_log10()
   }
   return(p)
-  }) |> ggarrange(plotlist = _)
+  }) |> ggpubr::ggarrange(plotlist = _)
 
 ggsave("Plots/clust_char.png", p_clst_char, width = 13, height = 11, bg = "white")
 

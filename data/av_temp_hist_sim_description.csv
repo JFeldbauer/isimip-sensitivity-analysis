@@ -1,7 +1,7 @@
 column_name,description,short_description,unit
 lake,lake name,lake name,-
-tsurf,average annual surface temperature for the period 1980 – 2000 from simulation,surface temperature,°C
-tsurf_sd,standard deviation of the average annual surface temperature for the period 1980 – 2000 from simulation,standard deviation of surface temperature,°C
-min_tsurf,average annual minimum surface temperature for the period 1980 – 2000 from simulation,minimum surface temperature,°C
-tbot,average annual surface bottom for the period 1980 – 2000 from simulation,bottom temperature,°C
-tbot_sd,standard deviation of the average annual bottom temperature for the period 1980 – 2000 from simulation,standard deviation of bottom temperature,°C
+tsurf,average annual surface temperature for the period 1980 – 2000 from simulation,surface temp,°C
+tsurf_sd,standard deviation of the average annual surface temperature for the period 1980 – 2000 from simulation,sd of surface temp,°C
+min_tsurf,average annual minimum surface temperature for the period 1980 – 2000 from simulation,min surface temp,°C
+tbot,average annual surface bottom for the period 1980 – 2000 from simulation,bottom temp,°C
+tbot_sd,standard deviation of the average annual bottom temperature for the period 1980 – 2000 from simulation,sd of bottom temp,°C
