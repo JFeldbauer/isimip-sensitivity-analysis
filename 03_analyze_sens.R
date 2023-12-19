@@ -64,6 +64,16 @@ res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
   facet_grid(var ~ names) + theme_pubr(base_size = 17) + grids() +
   xlim(0, 1) +  ylim(0, 1)
 
+# interactions measure: S_interact = 1 - sum(S1_i)
+res_o |> group_by(lake, model, var) |> reframe(iat = 1 - sum(S1)) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_boxplot(aes(x = kmcluster, y = iat, fill = kmcluster)) +
+  facet_grid(var~model) +
+  thm + xlab("Cluster") + ylab(" interaction measure") +
+  scale_fill_viridis_d("Cluster")
+
+ggsave("Plots/interaction_clust.png", width = 11, height = 8)
+
 ##--------- single most sensitive parameter  ---------------------------
 
 # calculate single most sensitive parameter for each lake and model
@@ -84,6 +94,20 @@ res_mip |> pivot_longer(cols = 4:5) |>
   scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
 
 ggsave("Plots/sens_single.png", width = 11, height = 9)
+
+# boxplots of sensitivity metrics
+res_o |> pivot_longer(cols = c(delta, S1)) |> filter(names != "dummy") |>
+  mutate(name = case_match(name,
+                           "delta" ~ "\u03B4",
+                           "S1" ~ "S1")) |> ggplot() +
+  geom_boxplot(aes(x = names, y = value, fill = name)) +
+  facet_grid(var ~ model, scales = "free") +
+  scale_fill_manual("Sensitivity \n measure",
+                    values = c("#45B2DD", "#72035F")) +
+  thm + xlab("parameter") +
+  theme(axis.text.x=element_text(angle = -60, hjust = 0)) 
+
+ggsave("Plots/sens_value.png", width = 11, height = 9)
 
 # only use delta sensitivity metric but look at cluster
 res_mip |> pivot_longer(cols = par_d) |>
