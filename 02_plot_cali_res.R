@@ -215,7 +215,8 @@ best_all_a |> pivot_longer(!!p_metrics) |> filter(best_met == name) |>
                  bins = 20, col = 1) +
   thm + xlab("") +
   facet_wrap(~best_met, scales = "free") +
-  scale_fill_viridis_d("Cluster")
+  scale_fill_viridis_d("Cluster") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 ggsave("Plots/best_fit_clust.png", width = 13, height = 7)
 
@@ -236,7 +237,8 @@ best_all |> filter(best_met == "rmse") |>
   theme(panel.background = element_rect(fill = '#9fbfdf'),
         panel.grid.major = element_line(color = 'black', linetype = 'dotted'),
         panel.grid.minor = element_blank(),
-        legend.position = "top")
+        legend.position = "top") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 ggsave("Plots/mapisimip.png", width = 11, height = 7, bg = "white")
 
@@ -307,9 +309,10 @@ best_all_a |> filter(best_met == "rmse") |>
 ##-------- compare models -----------------------
 
 # distribution of metrics along all 2000 parameter sets and 73 lakes
-res |> pivot_longer(!!p_metrics) |> ggplot() +
+res |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  pivot_longer(!!p_metrics) |> ggplot() +
   geom_violin(aes(x = model, y = value, fill = model)) + scale_y_log10() +
-  facet_wrap(~name, scales = "free_y") + thm + scale_y_log10()
+  facet_grid(name~kmcluster, scales = "free") + thm + scale_y_log10()
 
 # check if the same models perform good or bad along the four models
 p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |> 
@@ -320,12 +323,15 @@ p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |>
           max = max(value)) |>
   mutate(range = ifelse(range > 1e3, NA, range)) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
-  ggplot() + geom_violin(aes(y = range, x = kmcluster, fill = kmcluster)) +
-  geom_point(aes(y = range, x = kmcluster), col = alpha("grey42", 0.666),
+  ggplot() + geom_boxplot(aes(y = sd, x = as.numeric(kmcluster),
+                             fill = kmcluster)) +
+  geom_point(aes(y = sd, x = as.numeric(kmcluster)),
+             col = alpha("grey42", 0.666),
              size = 3.5) +
   facet_wrap(~name, scales = "free_y") + thm +
-  scale_fill_viridis_d("Cluster") + ylab("Range model performacne") +
-  xlab("Cluster")
+  scale_fill_viridis_d("Cluster") + ylab("standard deviation model performacne") +
+  xlab("Cluster") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
   group_by(lake, best_met, name) |> filter(best_met == name) |>
@@ -345,7 +351,8 @@ p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
   geom_abline(aes(intercept = 0, slope = 1), col = 2, lty = 17) +
   facet_wrap(~name, scales = "free") + thm +
   scale_color_viridis_d("Cluster") + xlab("Poorest model performance") +
-  ylab("Best model performance")
+  ylab("Best model performance") +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE))
 
 
 p_mcomp3 <- best_all |> pivot_longer(!!p_metrics) |>
@@ -361,11 +368,12 @@ p_mcomp3 <- best_all |> pivot_longer(!!p_metrics) |>
   mutate(best = ifelse(best > 1e3, NA, best),
          worst = ifelse(worst > 1e3, NA, worst)) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
-  ggplot() + geom_point(aes(x = best, y = range, col = kmcluster),
+  ggplot() + geom_point(aes(x = best, y = sd, col = kmcluster),
                         size = 3) +
   facet_wrap(~name, scales = "free") + thm +
-  scale_color_viridis_d("Cluster") + ylab("Range model performacne") +
-  xlab("Best model performance")
+  scale_color_viridis_d("Cluster") + ylab("standard deviation model performacne") +
+  xlab("Best model performance") +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE))
 
 
 ggsave("Plots/range_best_model.png", p_mcomp1, width = 13, height = 9,
@@ -390,18 +398,21 @@ best_all_a |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
-  geom_boxplot(aes(x = kmcluster, y = wind_speed, fill = kmcluster)) +
+  geom_boxplot(aes(x = as.numeric(kmcluster), y = wind_speed,
+                   fill = kmcluster)) +
   facet_grid(best_met~model) + scale_fill_viridis_d("Cluster") + thm +
-  xlab("Cluster") + ylab("Calibrated wind scaling (-)")
+  xlab("Cluster") + ylab("Calibrated wind scaling (-)") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 ggsave("Plots/dist_wind_scaling_cluster.png", width = 13, height = 11)
 
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
-  geom_boxplot(aes(x = kmcluster, y = swr, fill = kmcluster)) +
+  geom_boxplot(aes(x = as.numeric(kmcluster), y = swr, fill = kmcluster)) +
   facet_grid(best_met~model) + scale_fill_viridis_d("Cluster") + thm +
-  xlab("Cluster") + ylab("Calibrated swr scaling (-)")
+  xlab("Cluster") + ylab("Calibrated swr scaling (-)") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 11)
 

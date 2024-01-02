@@ -280,6 +280,9 @@ plot(k, type='b', avg_sil, xlab='Number of clusters',
 # number of cluster for kmeans clustering
 nkmclust <- nclust
 
+# set seed so the cluster numbers are reproducible
+set.seed(3141)
+
 km <- kmeans(select(dat_clust_norm, -lake), nkmclust, nstart = 500,
              iter.max = 500)
 
@@ -292,10 +295,28 @@ hclus <- hclust(disttance)
 hcluster <- cutree(hclus, k = nclust)
 
 ## attach cluster to the meta data frame and the data from clustering for plots
-lake_meta <- lake_meta |> cbind(data.frame(kmcluster = factor(kmcluster),
-                                           hcluster = factor(hcluster)))
-dat_clust <- dat_clust |> cbind(data.frame(kmcluster = factor(kmcluster),
-                                           hcluster = factor(hcluster)))
+lake_meta <- lake_meta |> cbind(data.frame(kmcluster = kmcluster,
+                                           hcluster = factor(hcluster))) |>
+  mutate(kmcluster = case_match(kmcluster,
+                                2 ~ "Warm lakes",
+                                3 ~ "Small temperate lakes",
+                                1 ~ "Deep lakes",
+                                5 ~ "Large shallow lakes",
+                                4 ~ "Medium temperate lakes")) |>
+  mutate(kmcluster = factor(kmcluster,
+                            levels = c("Deep lakes",
+                                       "Medium temperate lakes",
+                                       "Small temperate lakes",
+                                       "Large shallow lakes",
+                                       "Warm lakes"),
+                            labels = c("Deep lakes",
+                                       "Medium temperate lakes",
+                                       "Small temperate lakes",
+                                       "Large shallow lakes",
+                                       "Warm lakes")))
+
+dat_clust <- dat_clust |> cbind(data.frame(kmcluster = lake_meta$kmcluster,
+                                           hcluster = factor(hcluster))) 
 
 # add info about kw, osgood, and cluster to lake meta data descripton data.frame
 lake_meta_desc <- mutate(lake_meta_desc,
@@ -304,8 +325,8 @@ lake_meta_desc <- mutate(lake_meta_desc,
                                               column_name)) |>
   rbind(data.frame(column_name = c("kw", "vd", "osgood"),
                                    description = c("Average calibrated light extinction factor",
-                                                   "Volume development (Hakanson, 1981)",
-                                                   "Osgood index (Osgood, 1988)"),
+                                                   "Volume development (@hakanson_manual_1981)",
+                                                   "Osgood index (@osgood_lake_1988)"),
                                    short_description = c("Kw",
                                                          "hyps.",
                                                          "Osgood index"),
@@ -323,10 +344,10 @@ char_tested <- lake_meta |>
 char_used <- dat_clust |> colnames()
 
 filter(lake_meta_desc, column_name %in% char_tested) |>
-  mutate(used = column_name %in% char_used) |>
-  mutate(used = ifelse(used, "yes", "no")) |>
+  #mutate(used = column_name %in% char_used) |>
+  #mutate(used = ifelse(used, "yes", "no")) |>
   select(-short_description) |>
-  setNames(c("Name", "Description", "Unit", "Used")) |>
+  setNames(c("Name", "Description", "Unit")) |>
   kable( format = "pipe")
 
 ##------------ plots ----------------------------------------------------------
@@ -407,8 +428,7 @@ ggsave("Plots/pca_all_char.png", width = 11, height = 10)
 pca_dat <- select(dat_clust_norm, -lake) |> prcomp()
 
 p_pca <- as.data.frame(pca_dat$x) |>
-  cbind(data.frame(kmcluster = factor(kmcluster),
-                   hcluster = factor(hcluster))) |>
+  cbind(data.frame(kmcluster = lake_meta$kmcluster))|>
   ggplot() +
   geom_point(aes(x = PC1, y = PC2, col = kmcluster), size = 2.75) +
   geom_text(aes(x = PC1, y = PC2, col = kmcluster,
@@ -426,7 +446,8 @@ p_pca <- as.data.frame(pca_dat$x) |>
               "% )")) +
   ylab(paste0("PC2 ( ",
               round((pca_dat$sdev^2/sum(pca_dat$sdev^2))[2]*100, 1),
-              "% )"))
+              "% )")) + guides(fill=guide_legend(nrow=2,byrow=TRUE)) +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE))
 
 
 p_bmc <- s_best_all |>
@@ -444,12 +465,14 @@ p_rmsec <- s_best_all |>
   left_join(dat_clust) |>
   select(lake, model, kmcluster, !!p_metrics, best_met) |>
   pivot_longer(!!p_metrics) |> slice(which(best_met == name)) |>
-  ggplot() + geom_violin(aes(y = value, x = kmcluster, fill = kmcluster)) +
-  geom_jitter(aes(y = value,  x = kmcluster), height = 0,
+  ggplot() + geom_violin(aes(y = value, x = as.numeric(kmcluster),
+                             fill = kmcluster)) +
+  geom_jitter(aes(y = value,  x = as.numeric(kmcluster)), height = 0,
               width = 0.125, size = 2.5, col = "grey42", alpha = 0.5) +
   thm + scale_fill_viridis_d("Cluster") +
   facet_wrap(~best_met, scales = "free_y") + theme(legend.position = "top") +
-  xlab("Cluster") + ylab("")
+  xlab("Cluster") + ylab("") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 
 ggsave("Plots/pca_cluster.png", p_pca, width = 11, height = 7, bg = "white")
@@ -457,38 +480,53 @@ ggsave("Plots/performance_cluster.png", p_rmsec, width = 11, height = 7, bg = "w
 
 # distributuin of the lake characteristics
 
-p_clst_char <- lapply(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
+p_clst_char <- lapply(c(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
                                                                       "kmcluster",
                                                                       "hcluster")],
+                        "legend"),
                       function(c) {
-  dat <- select(dat_clust, c, "kmcluster")
-  desc <- lake_meta_desc$short_description[lake_meta_desc$column_name == c]
-  unit <- lake_meta_desc$unit[lake_meta_desc$column_name == c]
-  if(is.factor(dat[, c])) {
-    p <- dat |> table() |> as.data.frame() |> group_by(kmcluster) |>
-       ggplot() +
-      geom_col(aes_string(fill = c, y = "Freq", x = "kmcluster")) +
-      # scale_fill_viridis_d(desc, option = ifelse(c == "vd", "G", "E")) +
-      xlab("") + thm +
-      theme(legend.position = "top") + guides(fill=guide_legend(ncol=2))
+  if(c != "legend"){
+    dat <- select(dat_clust, c, "kmcluster") |> mutate(kmclustern = as.numeric(kmcluster))
+    desc <- lake_meta_desc$short_description[lake_meta_desc$column_name == c]
+    unit <- lake_meta_desc$unit[lake_meta_desc$column_name == c]
+    if(is.factor(dat[, c])) {
+      p <- dat |> table() |> as.data.frame() |> group_by(kmcluster) |>
+        ggplot() +
+        geom_col(aes_string(fill = c, y = "Freq", x = "kmclustern")) +
+        # scale_fill_viridis_d(desc, option = ifelse(c == "vd", "G", "E")) +
+        xlab("") + thm +
+        theme(legend.position = "top") + guides(fill=guide_legend(ncol=2))
+    } else {
+      p <- dat |> ggplot() +
+        geom_violin(aes_string(y = c, fill = "kmcluster", x = "kmclustern")) +
+        geom_jitter(aes_string(y = c,  x = "kmclustern"), height = 0,
+                    width = 0.125, size = 2.5, col = "grey42", alpha = 0.5) +
+        scale_fill_viridis_d("") +
+        thm + xlab("") +
+        ylab(paste0(desc, " ( ", unit, " )")) +
+        theme(legend.position = "none")
+    }
+    
+    if(c %in% c("max.depth.m",
+                "mean.depth.m",
+                "lake.area.sqkm")) {
+      p <- p + scale_y_log10()
+    }
   } else {
+    dat <- data.frame(x = 0,
+                      y = rev(1:5),
+                      leg = paste(1:5, "-",levels(lake_meta$kmcluster)))
     p <- dat |> ggplot() +
-      geom_violin(aes_string(y = c, fill = "kmcluster", x = "kmcluster")) +
-      geom_jitter(aes_string(y = c,  x = "kmcluster"), height = 0,
-                  width = 0.125, size = 2.5, col = "grey42", alpha = 0.5) +
-      scale_fill_viridis_d("") +
-      thm + xlab("") +
-      ylab(paste0(desc, " ( ", unit, " )")) +
-      theme(legend.position = "none")
+      geom_point(aes(x = x, y = y, col = leg), size = 6.66) +
+      geom_text(aes(x = x + 0.1, y = y, label = leg),
+                size = 4, hjust = 0) +
+      theme_void() + xlim(-0.15, 0.85) + ylim(0, 5) +
+      theme(legend.position = "none") + scale_color_viridis_d("")
+    
   }
   
-  if(c %in% c("max.depth.m",
-              "mean.depth.m",
-              "lake.area.sqkm")) {
-    p <- p + scale_y_log10()
-  }
   return(p)
   }) |> ggpubr::ggarrange(plotlist = _)
 
-ggsave("Plots/clust_char.png", p_clst_char, width = 13, height = 11, bg = "white")
+ggsave("Plots/clust_char.png", p_clst_char, width = 16, height = 12, bg = "white")
 
