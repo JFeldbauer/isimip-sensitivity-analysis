@@ -1,7 +1,7 @@
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 # clean up
-rm(list=ls())
+rm(list = ls())
 graphics.off()
 cat("\14")
 
@@ -65,9 +65,11 @@ res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
   xlim(0, 1) +  ylim(0, 1)
 
 # interactions measure: S_interact = 1 - sum(S1_i)
-res_o |> group_by(lake, model, var) |> reframe(iat = 1 - sum(S1)) |>
-  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
-  ggplot() + geom_boxplot(aes(x = kmcluster, y = iat, fill = kmcluster)) +
+dat_iat <- res_o |> group_by(lake, model, var) |> reframe(iat = 1 - sum(S1)) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name"))
+
+dat_iat |> ggplot() + geom_boxplot(aes(x = as.numeric(kmcluster),
+                              y = iat, fill = kmcluster)) +
   facet_grid(var~model) +
   thm + xlab("Cluster") + ylab(" interaction measure") +
   scale_fill_viridis_d("Cluster")
@@ -264,14 +266,11 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
 
 ggsave("Plots/count_imp_par2.png", width = 14, height = 11)
 
-# lakes where no parameter is sensitive
-res |> group_by(lake, var, model) |>
-  mutate(no_sens = all(delta[names != "dummy"] <= delta[names == "dummy"]) ||
-           all(S1[names != "dummy"] <= S1[names == "dummy"])) |>
-  filter(no_sens) |> select(lake) |> unique()  # only happens for nmae
-
-
-# only for nmae there are cases where no parameter is sensitive
+## relate number of sensitive parameters to interaction measure
+S1_gip |> filter(frac == 1) |> group_by(model, var, frac, lake, meas) |> 
+  reframe(n = n()) |> left_join(dat_iat) |>
+  ggplot() + geom_point(aes(x = n, y = iat, col = kmcluster), size = 3) + 
+  facet_grid(var~model) + scale_color_viridis_d("Cluster") + thm
 
 
 ##------------------- look at sensitivity of wind speed scaling ---------------
@@ -280,13 +279,13 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(delta = ifelse(delta > 1, 0, delta)) |>
   filter(names == "wind_speed") |> ggplot() +
   geom_point(aes(x = lake.area.sqkm, y = mean.depth.m, col = delta)) +
-  facet_grid(model~var) +
+  facet_grid(model~var) + thm +
   scale_x_log10() + scale_y_log10() + scale_color_viridis_c(option = "D")
 
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(delta = ifelse(delta > 1, 0, delta)) |>
   filter(names == "wind_speed") |> ggplot() +
-  geom_boxplot(aes(x = kmcluster, y = delta, fill = kmcluster)) +
+  geom_boxplot(aes(x = as.numeric(kmcluster), y = delta, fill = kmcluster)) +
   facet_grid(model~var) + thm +
   scale_fill_viridis_d() + xlab("delta sensitivity wind speed scaling")
 
