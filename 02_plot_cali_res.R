@@ -74,7 +74,10 @@ res |> group_by(lake) |>
           nmae = model[which.min(nmae)]) |>
   pivot_longer(-1) |> filter(name %in% p_metrics) |>
   group_by(lake) |> reframe(n = length(unique(value))) |>
-  ggplot() + geom_histogram(aes(x = n))
+  group_by(n) |> reframe(freq = sum(n)) |> ungroup() |>
+  mutate(freq = freq/sum(freq)) |>
+  ggplot() + geom_col(aes(x = n, y = freq)) + thm +
+  xlab("Number of different 'best' model") + ylab("Proportion (-)")
 
 
 
