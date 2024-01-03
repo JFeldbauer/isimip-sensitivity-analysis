@@ -78,25 +78,6 @@ ggsave("Plots/interaction_clust.png", width = 11, height = 8)
 
 ##--------- single most sensitive parameter  ---------------------------
 
-# calculate single most sensitive parameter for each lake and model
-res_mip <- res |> group_by(lake, model, var) |>
-  reframe(par_d = names[delta == max(delta)],
-          par_S1 = names[S1 == max(S1)])
-
-# plot distribution of single most sensitive parameter over all lakes and models
-# for all measures
-res_mip |> pivot_longer(cols = 4:5) |>
-  mutate(name = case_match(name,
-                           "par_d" ~ "\u03B4",
-                           "par_S1" ~ "S1")) |> ggplot() +
-  geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
-  facet_grid(var~model, scales = "free_x") + thm +
-  grids() + xlab("parameter") +
-  theme(axis.text.x=element_text(angle = -60, hjust = 0)) +
-  scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
-
-ggsave("Plots/sens_single.png", width = 11, height = 9)
-
 # boxplots of sensitivity metrics
 res_o |> pivot_longer(cols = c(delta, S1)) |> filter(names != "dummy") |>
   mutate(name = case_match(name,
@@ -111,7 +92,30 @@ res_o |> pivot_longer(cols = c(delta, S1)) |> filter(names != "dummy") |>
 
 ggsave("Plots/sens_value.png", width = 11, height = 9)
 
-# only use delta sensitivity metric but look at cluster
+
+# calculate single most sensitive parameter for each lake and model
+res_mip <- res |> group_by(lake, model, var) |>
+  reframe(par_d = names[delta == max(delta)],
+          par_S1 = names[S1 == max(S1)]) |> select(-par_S1)
+
+# plot distribution of single most sensitive parameter over all lakes and models
+# for all measures
+res_mip |> pivot_longer(cols = par_d) |>
+  mutate(name = case_match(name,
+                           "par_d" ~ "\u03B4",
+                           "par_S1" ~ "S1")) |> ggplot() +
+  geom_histogram(aes(x = value, fill = name), stat = "count",
+                 position = "dodge", col = 1) +
+  facet_grid(var~model, scales = "free_x") + thm +
+  grids() + xlab("parameter") +
+  theme(axis.text.x=element_text(angle = -60, hjust = 0),
+        legend.position = "none") +
+  scale_fill_manual("", values = c("#72035F"))
+
+ggsave("Plots/sens_single.png", width = 11, height = 9)
+
+
+# look at cluster
 res_mip |> pivot_longer(cols = par_d) |>
   mutate(name = case_match(name,
                            "par_d" ~ "\u03B4",
@@ -125,35 +129,8 @@ res_mip |> pivot_longer(cols = par_d) |>
   scale_fill_viridis_d("Cluster")
 
 
-# check if there is a correlation between sensitive parameter and cluster
-res_mip |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
-  select(model, var, par_d, par_S1, kmcluster) |>
-  pivot_longer(3:4) |>
-  mutate(name = case_match(name,
-                           "par_d" ~ "\u03B4",
-                           "par_S1" ~ "S1")) |> ggplot() +
-  geom_histogram(aes(x = value, fill = name), stat = "count", position = "dodge") +
-  facet_grid(paste("Cluster ",kmcluster)~model, scales = "free") +
-  theme_pubr(base_size = 17) +
-  theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
-  grids() + xlab("parameter") +
-  scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
-
 ggsave("Plots/sens_single_clust.png", width = 11, height = 9)
 
-# check how many times most sensitive parameter from delta and S1 differ
-sum(res_mip$par_d != res_mip$par_S1)
-res_mip[res_mip$par_d != res_mip$par_S1, ]
-
-## relate most sensitive parameter to meta info on lake
-res_mip <- left_join(res_mip, meta, by = c("lake" = "Lake.Short.Name")) |>
-  mutate(Reservoir.or.lake. = as.factor(Reservoir.or.lake.),
-         par_d = as.factor(par_d),
-         par_S1 = as.factor(par_S1))
-
-res_mip |> ggplot() + geom_point(aes(y = par_d, x = mean.depth.m,
-                                     col = var), size = 3) +
-  facet_wrap(~model, scales = "free_y") + scale_x_log10() + thm
 
 ##--------- group of most sensitive parameters -------------------------------
 
@@ -179,53 +156,59 @@ gmiv <- function(x, frac = .75) {
 res_gip <- res |> group_by(lake, model, var) |> filter(delta != 0 & S1 != 0) |>
   reframe(par_d_05 = paste0(names[delta %in% gmiv(delta, .5)], collapse = ", "),
           n_par_d_05 = length(names[delta %in% gmiv(delta, .5)]),
-          par_S1_05 = paste0(names[S1 %in% gmiv(S1, .5)], collapse = ", "),
-          n_par_S1_05 = length(names[S1 %in% gmiv(S1, .5)]),
+          #par_S1_05 = paste0(names[S1 %in% gmiv(S1, .5)], collapse = ", "),
+          #n_par_S1_05 = length(names[S1 %in% gmiv(S1, .5)]),
           par_d_75 = paste0(names[delta %in% gmiv(delta, .75)], collapse = ", "),
           n_par_d_75 = length(names[delta %in% gmiv(delta, .75)]),
-          par_S1_75 = paste0(names[S1 %in% gmiv(S1, .75)], collapse = ", "),
-          n_par_S1_75 = length(names[S1 %in% gmiv(S1, .75)]),
+          #par_S1_75 = paste0(names[S1 %in% gmiv(S1, .75)], collapse = ", "),
+          #n_par_S1_75 = length(names[S1 %in% gmiv(S1, .75)]),
           par_d_1 = paste0(names[delta %in% gmiv(delta, 1)], collapse = ", "),
-          n_par_d_1 = length(names[delta %in% gmiv(delta, 1)]),
-          par_S1_1 = paste0(names[S1 %in% gmiv(S1, 1)], collapse = ", "),
-          n_par_S1_1 = length(names[S1 %in% gmiv(S1, 1)]))
+          n_par_d_1 = length(names[delta %in% gmiv(delta, 1)]))#,
+          #par_S1_1 = paste0(names[S1 %in% gmiv(S1, 1)], collapse = ", "),
+          #n_par_S1_1 = length(names[S1 %in% gmiv(S1, 1)]))
 
 # plot distribution of most sensitive parameters over all lakes and models
 # for both measures
-delta_gip <- res_gip |> pivot_longer(seq(4, 14, by = 2)) |>
+delta_gip <- res_gip |> pivot_longer(seq(4, 8, by = 2)) |>
   filter(grepl("par_d_.*", name)) |>
   mutate(frac = gsub(".*_", "", name)) |> 
   group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
                                                    meas = "\u03B4")
-S1_gip <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
-  filter(grepl("par_S1_.*", name)) |>
-  mutate(frac = gsub(".*_", "", name)) |> 
-  group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
-                                                meas = "S1")
-rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
+# S1_gip <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
+#   filter(grepl("par_S1_.*", name)) |>
+#   mutate(frac = gsub(".*_", "", name)) |> 
+#   group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
+#                                                 meas = "S1")
+
+#rbind(delta_gip, S1_gip) 
+delta_gip |> filter(frac == "1") |>
   ggplot() +
   geom_histogram(aes(x = par, fill = meas), stat = "count", position = "dodge") +
   facet_grid(var~model, scales = "free_x") + thm +
   grids() + xlab("parameter") +
-  theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
-  scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F"))
+  theme(axis.text.x=element_text(angle = -55, hjust = 0),
+        legend.position = "none") +
+  scale_fill_manual("Sensitivity \n measure", values = c("#72035F"))
 
 ggsave("Plots/count_sens.png", width = 14, height = 11)
 
 # also plot for the different cluster
-rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
+#rbind(delta_gip, S1_gip) |>
+ delta_gip |> filter(frac == "1") |>
   left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
-  ggplot() + geom_histogram(aes(x = par,  fill = meas),
-                            stat = "count", position = "dodge") + 
-  facet_grid(kmcluster~model, scales = "free_x") + thm + grids() +
-  scale_fill_manual("Sensitivity \n measure", values = c("#45B2DD", "#72035F")) +
+  ggplot() + geom_histogram(aes(x = par,  fill = kmcluster),
+                            stat = "count", position = "dodge",
+                            col = 1) + 
+  facet_grid(var~model, scales = "free_x") + thm + grids() +
+  scale_fill_viridis_d("Cluster") +
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   xlab("Parameter")
 
 ggsave("Plots/count_sens_clust.png", width = 14, height = 11)
 
-# same but sum up the different performacne metrics
-rbind(delta_gip, S1_gip) |> filter(frac == "1") |>
+# different plot with frequencies
+#rbind(delta_gip, S1_gip)
+delta_gip |> filter(frac == "1") |>
   left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   group_by(model, kmcluster, var, par) |> reframe(cnt = length(var)) |>
   group_by(model, kmcluster, var) |> mutate(cnt = cnt/sum(cnt)) |>
@@ -241,7 +224,8 @@ ggsave("Plots/freq_sens_clust.png", width = 14, height = 11)
 
 
 ## plot distribution of number of sensitive parameters
-rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
+# rbind(delta_gip, S1_gip)
+delta_gip |> group_by(model, var, frac, lake, meas) |>
   reframe(n = n()) |> mutate(frac = factor(frac, levels = c("1", "75", "05"),
                                            labels = c("100%", "75%", "50%"))) |>
   ggplot() + geom_histogram(aes(x = n,  fill = frac),
@@ -253,7 +237,8 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
 ggsave("Plots/count_imp_par.png", width = 14, height = 11)
 
 ## alternative plot
-rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
+# rbind(delta_gip, S1_gip)
+delta_gip |> group_by(model, var, frac, lake, meas) |>
   reframe(n = n()) |> mutate(frac = factor(frac, levels = c("1", "75", "05"),
                                            labels = c("100%", "75%", "50%"))) |>
   group_by(model, frac, var, n) |> reframe(cnt = length(var)) |>
@@ -267,28 +252,47 @@ rbind(delta_gip, S1_gip) |> group_by(model, var, frac, lake, meas) |>
 ggsave("Plots/count_imp_par2.png", width = 14, height = 11)
 
 ## relate number of sensitive parameters to interaction measure
-S1_gip |> filter(frac == 1) |> group_by(model, var, frac, lake, meas) |> 
+delta_gip |> filter(frac == 1) |> group_by(model, var, frac, lake, meas) |> 
   reframe(n = n()) |> left_join(dat_iat) |>
   ggplot() + geom_point(aes(x = n, y = iat, col = kmcluster), size = 3) + 
   facet_grid(var~model) + scale_color_viridis_d("Cluster") + thm
 
 
-##------------------- look at sensitivity of wind speed scaling ---------------
+##--------------- look at sensitivity of scaling factors -----------
 
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
-  mutate(delta = ifelse(delta > 1, 0, delta)) |>
+  mutate(delta = ifelse(delta > 1, 1, delta)) |>
   filter(names == "wind_speed") |> ggplot() +
   geom_point(aes(x = lake.area.sqkm, y = mean.depth.m, col = delta)) +
   facet_grid(model~var) + thm +
   scale_x_log10() + scale_y_log10() + scale_color_viridis_c(option = "D")
 
+# look at different cluster wind speed
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
-  mutate(delta = ifelse(delta > 1, 0, delta)) |>
+  mutate(delta = ifelse(delta > 1, 1, delta)) |>
   filter(names == "wind_speed") |> ggplot() +
   geom_boxplot(aes(x = as.numeric(kmcluster), y = delta, fill = kmcluster)) +
-  facet_grid(model~var) + thm +
-  scale_fill_viridis_d() + xlab("delta sensitivity wind speed scaling")
+  facet_grid(var~model) + thm +
+  scale_fill_viridis_d("Cluster") + xlab("Cluster") +
+  ylab("Delta sensitivity wind scaling")
 
+# look at different cluster swr
+res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(delta = ifelse(delta > 1, 1, delta)) |>
+  filter(names == "swr") |> ggplot() +
+  geom_boxplot(aes(x = as.numeric(kmcluster), y = delta, fill = kmcluster)) +
+  facet_grid(var~model) + thm +
+  scale_fill_viridis_d("Cluster") + xlab("Cluster") +
+  ylab("Delta sensitivity swr scaling")
+
+# look at different cluster Kw
+res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(delta = ifelse(delta > 1, 1, delta)) |>
+  filter(names == "Kw") |> ggplot() +
+  geom_boxplot(aes(x = as.numeric(kmcluster), y = delta, fill = kmcluster)) +
+  facet_grid(var~model) + thm +
+  scale_fill_viridis_d("Cluster") + xlab("Cluster") +
+  ylab("Delta sensitivity Kw scaling")
 
 ##---------- plots for single models -----------------------------
 
@@ -336,7 +340,7 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   
   t <- ggplot(dat) +
     geom_point(data = dat,
-               aes(x = swr, y = wind_speed, color = rmse), shape = 15,
+               aes_string(x = "swr", y = "wind_speed", color = smet), shape = 15,
                size = 1.5, alpha = 0.75) +
     scale_colour_gradientn(colours = rev(spec))
   legend <- get_legend(t)
@@ -445,3 +449,27 @@ ggsave("Plots/GOTM_kivu.png", plot = p_gtm_kivu, width = 17, height = 12)
 ggsave("Plots/GLM_biel.png", plot = p_glm_biel, width = 17, height = 12)
 ggsave("Plots/FLake_stechlin.png", plot = p_fl_stech, width = 17, height = 12)
 ggsave("Plots/Simstrat_erken.png", plot = p_sim_erk, width = 17, height = 12)
+
+
+# look at some of the lakes with large intzeraction measure
+dat_iat |> filter(iat > 0.35) |> select(lake, model, var, iat) |>
+  print(n = Inf)
+
+my_sens_plot(m = "FLake", l = "Allequash", res_cali = res_cali,
+             res_sens = res_o)
+
+my_sens_plot(m = "FLake", l = "Alqueva", res_cali = res_cali,
+             res_sens = res_o, smet = "r")
+
+my_sens_plot(m = "FLake", l = "Delavan", res_cali = res_cali,
+             res_sens = res_o, smet = "nse")
+
+my_sens_plot(m = "Simstrat", l = "Tarawera", res_cali = res_cali,
+             res_sens = res_o, smet = "nse")
+
+my_sens_plot(m = "Simstrat", l = "Chao", res_cali = res_cali,
+             res_sens = res_o, smet = "r")
+
+my_sens_plot(m = "GLM", l = "Thun", res_cali = res_cali,
+             res_sens = res_o, smet = "nse")
+
