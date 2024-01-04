@@ -285,14 +285,16 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   scale_fill_viridis_d("Cluster") + xlab("Cluster") +
   ylab("Delta sensitivity swr scaling")
 
-# look at different cluster Kw
+# look at different cluster Kw (use same plot as for calibrated Kw values
+# per cluster in script 02_)
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(delta = ifelse(delta > 1, 1, delta)) |>
   filter(names == "Kw") |> ggplot() +
-  geom_boxplot(aes(x = as.numeric(kmcluster), y = delta, fill = kmcluster)) +
-  facet_grid(var~model) + thm +
-  scale_fill_viridis_d("Cluster") + xlab("Cluster") +
-  ylab("Delta sensitivity Kw scaling")
+  geom_boxplot(aes(x = model, y = delta, fill = model)) +
+  facet_grid(var~kmcluster) + thm +
+  scale_fill_viridis_d("Model", option = "C") + xlab("Cluster") +
+  ylab("Delta sensitivity Kw scaling") +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
 ##---------- plots for single models -----------------------------
 

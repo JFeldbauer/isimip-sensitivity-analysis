@@ -419,6 +419,17 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
 
 ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 11)
 
+best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() +
+  geom_boxplot(aes(x = model, y = Kw, fill = model)) +
+  facet_grid(best_met~kmcluster) +
+  scale_fill_viridis_d("Model", option = "C") + thm +
+  xlab("Model") + ylab("Calibrated Kw scaling (-)") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+
+ggsave("Plots/dist_kw_scaling_cluster.png", width = 13, height = 11)
 
 lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
   best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
