@@ -205,7 +205,7 @@ p_dist_lake <- best_all |> pivot_longer(!!p_metrics) |>
   geom_histogram(aes(x = value, y = ..count..),
                  bins = 30, col = 1) +
   thm + xlab("") +
-  facet_grid(model~best_met, scales = "free")
+  facet_grid(best_met~model, scales = "free")
 
 ggsave("Plots/best_fit_model.png", p_dist_lake, width = 13, height = 7)
 

@@ -276,6 +276,8 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   scale_fill_viridis_d("Cluster") + xlab("Cluster") +
   ylab("Delta sensitivity wind scaling")
 
+ggsave("Plots/sensitivity_wind_clust.png", width = 11, height = 9)
+
 # look at different cluster swr
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(delta = ifelse(delta > 1, 1, delta)) |>
@@ -284,6 +286,8 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   facet_grid(var~model) + thm +
   scale_fill_viridis_d("Cluster") + xlab("Cluster") +
   ylab("Delta sensitivity swr scaling")
+
+ggsave("Plots/sensitivity_swr_clust.png", width = 11, height = 9)
 
 # look at different cluster Kw (use same plot as for calibrated Kw values
 # per cluster in script 02_)
@@ -295,6 +299,8 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   scale_fill_viridis_d("Model", option = "C") + xlab("Cluster") +
   ylab("Delta sensitivity Kw scaling") +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+
+ggsave("Plots/sensitivity_Kw_clust.png", width = 11, height = 9)
 
 ##---------- plots for single models -----------------------------
 
