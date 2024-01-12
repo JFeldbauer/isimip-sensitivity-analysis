@@ -260,12 +260,6 @@ delta_gip |> filter(frac == 1) |> group_by(model, var, frac, lake, meas) |>
 
 ##--------------- look at sensitivity of scaling factors -----------
 
-res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
-  mutate(delta = ifelse(delta > 1, 1, delta)) |>
-  filter(names == "wind_speed") |> ggplot() +
-  geom_point(aes(x = lake.area.sqkm, y = mean.depth.m, col = delta)) +
-  facet_grid(model~var) + thm +
-  scale_x_log10() + scale_y_log10() + scale_color_viridis_c(option = "D")
 
 # look at different cluster wind speed
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
@@ -276,7 +270,18 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   scale_fill_viridis_d("Cluster") + xlab("Cluster") +
   ylab("Delta sensitivity wind scaling")
 
-ggsave("Plots/sensitivity_wind_clust.png", width = 11, height = 9)
+ggsave("Plots/sensitivity_wind_clust_model.png", width = 13, height = 9)
+
+res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(delta = ifelse(delta > 1, 1, delta)) |>
+  filter(names == "wind_speed") |> ggplot() +
+  geom_boxplot(aes(x = model, y = delta, fill = model)) +
+  facet_grid(var~kmcluster) + thm +
+  scale_fill_viridis_d("Model", option = "C") + xlab("Cluster") +
+  ylab("Delta sensitivity wind scaling") +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+
+ggsave("Plots/sensitivity_wind_clust.png", width = 13, height = 9)
 
 # look at different cluster swr
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
@@ -287,10 +292,31 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   scale_fill_viridis_d("Cluster") + xlab("Cluster") +
   ylab("Delta sensitivity swr scaling")
 
-ggsave("Plots/sensitivity_swr_clust.png", width = 11, height = 9)
+ggsave("Plots/sensitivity_swr_clust_model.png", width = 13, height = 9)
+
+res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(delta = ifelse(delta > 1, 1, delta)) |>
+  filter(names == "swr") |> ggplot() +
+  geom_boxplot(aes(x = model, y = delta, fill = model)) +
+  facet_grid(var~kmcluster) + thm +
+  scale_fill_viridis_d("Model", option = "C") + xlab("Cluster") +
+  ylab("Delta sensitivity swr scaling") +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+
+ggsave("Plots/sensitivity_swr_clust.png", width = 13, height = 9)
 
 # look at different cluster Kw (use same plot as for calibrated Kw values
 # per cluster in script 02_)
+res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(delta = ifelse(delta > 1, 1, delta)) |>
+  filter(names == "Kw") |> ggplot() +
+  geom_boxplot(aes(x = as.numeric(kmcluster), y = delta, fill = kmcluster)) +
+  facet_grid(var~model) + thm +
+  scale_fill_viridis_d("Cluster") + xlab("Cluster") +
+  ylab("Delta sensitivity Kw scaling")
+
+ggsave("Plots/sensitivity_Kw_clust_model.png", width = 13, height = 9)
+
 res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(delta = ifelse(delta > 1, 1, delta)) |>
   filter(names == "Kw") |> ggplot() +
@@ -300,7 +326,7 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   ylab("Delta sensitivity Kw scaling") +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
-ggsave("Plots/sensitivity_Kw_clust.png", width = 11, height = 9)
+ggsave("Plots/sensitivity_Kw_clust.png", width = 13, height = 9)
 
 ##---------- plots for single models -----------------------------
 

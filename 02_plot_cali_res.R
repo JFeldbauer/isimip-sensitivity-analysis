@@ -390,14 +390,7 @@ ggsave("Plots/best_model_range.png", p_mcomp3, width = 13, height = 9,
 
 ##-------- relate calibrated parameter values to lake characteristics ----
 
-# plot relating used wind speed scaling factor to lake area
-# for each model
-best_all_a |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
-  ggplot() + geom_point(aes(y = wind_speed,
-                            x = lake.area.sqkm,
-                            col = model), size = 2) +
-  thm + facet_wrap(.~best_met) + scale_x_log10()
-
+# wind speed scaling
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
@@ -407,8 +400,22 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   xlab("Cluster") + ylab("Calibrated wind scaling (-)") +
   guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
-ggsave("Plots/dist_wind_scaling_cluster.png", width = 13, height = 11)
+ggsave("Plots/dist_wind_scaling_cluster_model.png", width = 13, height = 9)
 
+best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
+                        col = "grey42") +
+  geom_boxplot(aes(x = model, y = wind_speed,
+                   fill = model)) +
+  facet_grid(best_met~kmcluster) +
+  scale_fill_viridis_d("Model", option = "C") + thm +
+  xlab("Cluster") + ylab("Calibrated wind scaling (-)") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+
+ggsave("Plots/dist_wind_scaling_cluster.png", width = 13, height = 9)
+
+# swr scaling
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
@@ -417,7 +424,31 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   xlab("Cluster") + ylab("Calibrated swr scaling (-)") +
   guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
-ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 11)
+ggsave("Plots/dist_swr_scaling_cluster_model.png", width = 13, height = 9)
+
+best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
+                        col = "grey42") +
+  geom_boxplot(aes(x = model, y = swr, fill = model)) +
+  facet_grid(best_met~kmcluster) +
+  scale_fill_viridis_d("Model", option = "C") + thm +
+  xlab("Cluster") + ylab("Calibrated swr scaling (-)") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+
+ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 9)
+
+# kw scaling
+best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() +
+  geom_boxplot(aes(x = as.numeric(kmcluster), y = Kw, fill = kmcluster)) +
+  facet_grid(best_met~model) +
+  scale_fill_viridis_d("Cluster") + thm +
+  xlab("Model") + ylab("Calibrated Kw scaling (-)") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+  scale_y_log10() 
+
+ggsave("Plots/dist_kw_scaling_cluster_model.png", width = 13, height = 9)
 
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() +
@@ -429,20 +460,24 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   scale_y_log10() +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
-ggsave("Plots/dist_kw_scaling_cluster.png", width = 13, height = 11)
+ggsave("Plots/dist_kw_scaling_cluster.png", width = 13, height = 9)
 
+# all model specific parameter together
 lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
   best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
     pivot_longer(cols = !!par_names) |> filter(model == m) |>
+    filter(!(name %in% c("wind_speed", "swr", "Kw")))|>
     select(best_met, value, kmcluster, name) |> na.omit() |>
     ggplot() +
     geom_boxplot(aes(x = best_met, y = value, fill = kmcluster)) +
     facet_wrap(~name, scales = "free") + scale_fill_viridis_d("Cluster") +
-    thm + xlab("") + ylab("")}) |>
+    thm + xlab("") + ylab("") +
+    guides(fill = guide_legend(nrow = 5, byrow = TRUE)) +
+    theme(legend.position = "right")}) |>
   ggpubr::ggarrange(plotlist = _, labels = c("FLake", "GLM", "GOTM", "Simstrat"),
-            common.legend = TRUE)
+            common.legend = TRUE, ncol = 1, legend = "right")
 
-ggsave("Plots/par_value_cluster.png", width = 30, height = 20, bg = "white")
+ggsave("Plots/par_value_cluster.png", width = 17, height = 13, bg = "white")
 
 
 ##### Plot best parameter values vs lake characteristics
