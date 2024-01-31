@@ -475,8 +475,24 @@ p_rmsec <- s_best_all |>
   guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 
+p_rmsec2 <- best_all |>
+  left_join(dat_clust) |>
+  select(lake, model, kmcluster, !!p_metrics, best_met) |>
+  pivot_longer(!!p_metrics) |> slice(which(best_met == name)) |>
+  ggplot() + geom_violin(aes(y = value, x = model,
+                             fill = model)) +
+  geom_jitter(aes(y = value,  x = model), height = 0,
+              width = 0.125, size = 2.5, col = "grey42", alpha = 0.5) +
+  thm + scale_fill_viridis_d("Model", option = "C") +
+  facet_grid(best_met~kmcluster, scales = "free_y") + theme(legend.position = "top") +
+  xlab("Model") + ylab("") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+
+
 ggsave("Plots/pca_cluster.png", p_pca, width = 11, height = 7, bg = "white")
 ggsave("Plots/performance_cluster.png", p_rmsec, width = 11, height = 7, bg = "white")
+ggsave("Plots/performance_cluster_all.png", p_rmsec2, width = 13, height = 7, bg = "white")
 
 # distributuin of the lake characteristics
 
