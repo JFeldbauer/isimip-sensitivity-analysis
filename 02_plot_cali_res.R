@@ -144,7 +144,7 @@ summary(rmse_m_step)
 p_dist_lake_a <- best_all_a |> pivot_longer(!!p_metrics) |>
   filter(best_met == name) |>
   ggplot() +
-  geom_histogram(aes(x = value, y = ..count..),
+  geom_histogram(aes(x = value, y = after_stat(count)),
                  bins = 30, col = 1) +
   thm + xlab("") +
   facet_wrap(~best_met, scales = "free")
@@ -158,7 +158,7 @@ for(m in p_metrics) {
   p_dtmp <-  best_all_a |> pivot_longer(!!p_metrics) |>
     filter(best_met == name & best_met == m) |>
     ggplot() +
-    geom_histogram(aes(x = value, y = ..count..),
+    geom_histogram(aes(x = value, y = after_stat(count)),
                    bins = 30, col = 1) +
     thm + xlab("") +
     facet_wrap(~best_met, scales = "free")
@@ -202,8 +202,8 @@ ggsave("Plots/best_fit_pie.png", p_pie, width = 13, height = 7)
 p_dist_lake <- best_all |> pivot_longer(!!p_metrics) |>
   filter(best_met == name) |>
   ggplot() +
-  geom_histogram(aes(x = value, y = ..count..),
-                 bins = 30, col = 1) +
+  geom_histogram(aes(x = value, y = after_stat(count)),
+                 bins = 50, col = 1) +
   thm + xlab("") +
   facet_grid(best_met~model, scales = "free")
 
@@ -214,7 +214,7 @@ ggsave("Plots/best_fit_model.png", p_dist_lake, width = 13, height = 7)
 best_all_a |> pivot_longer(!!p_metrics) |> filter(best_met == name) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |> 
   ggplot() +
-  geom_histogram(aes(x = value, y = ..count.., fill = kmcluster),
+  geom_histogram(aes(x = value, y = after_stat(count), fill = kmcluster),
                  bins = 20, col = 1) +
   thm + xlab("") +
   facet_wrap(~best_met, scales = "free") +
@@ -315,7 +315,8 @@ best_all_a |> filter(best_met == "rmse") |>
 res |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   pivot_longer(!!p_metrics) |> ggplot() +
   geom_violin(aes(x = model, y = value, fill = model)) + scale_y_log10() +
-  facet_grid(name~kmcluster, scales = "free") + thm + scale_y_log10()
+  facet_grid(name~kmcluster, scales = "free") + thm + scale_y_log10() +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
 # check if the same models perform good or bad along the four models
 p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |> 
@@ -324,7 +325,6 @@ p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |>
           sd = sd(value,),
           min = min(value),
           max = max(value)) |>
-  mutate(range = ifelse(range > 1e3, NA, range)) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_boxplot(aes(y = sd, x = as.numeric(kmcluster),
                              fill = kmcluster)) +
@@ -346,8 +346,6 @@ p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
           worst = case_when(name == "bias" ~ max(abs(value)),
                             name %in% c("mae", "nmae", "rmse") ~ max(value),
                             name %in% c("r", "nse") ~ min(value))) |>
-  mutate(best = ifelse(best > 1e3, NA, best),
-         worst = ifelse(worst > 1e3, NA, worst)) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_point(aes(x = worst, y = best, col = kmcluster),
                         size = 3) +
@@ -368,8 +366,6 @@ p_mcomp3 <- best_all |> pivot_longer(!!p_metrics) |>
           worst = case_when(name == "bias" ~ max(abs(value)),
                             name %in% c("mae", "nmae", "rmse") ~ max(value),
                             name %in% c("r", "nse") ~ min(value))) |>
-  mutate(best = ifelse(best > 1e3, NA, best),
-         worst = ifelse(worst > 1e3, NA, worst)) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_point(aes(x = best, y = sd, col = kmcluster),
                         size = 3) +
@@ -387,6 +383,30 @@ ggsave("Plots/poorest_best_model.png", p_mcomp2, width = 13, height = 9,
 
 ggsave("Plots/best_model_range.png", p_mcomp3, width = 13, height = 9,
        bg = "white")
+
+## just look at the deep and medium lakes to see which models perform better
+
+p_dl <- best_all |> pivot_longer(!!p_metrics) |> 
+  group_by(lake, best_met, name) |> filter(best_met == name) |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  filter(as.numeric(kmcluster) %in% 1:2) |>
+  ggplot() + geom_boxplot(aes(y = value, x = model, fill = model)) +
+    facet_wrap(~name, scales = "free") +
+  scale_fill_viridis_d("Model", option = "C") + thm +
+  ggtitle("Deep and medium temperate lakes")
+
+# look at the other cluster
+p_ol <- best_all |> pivot_longer(!!p_metrics) |> 
+  group_by(lake, best_met, name) |> filter(best_met == name) |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  filter(as.numeric(kmcluster) %in% 3:5) |>
+  ggplot() + geom_boxplot(aes(y = value, x = model, fill = model)) +
+  facet_wrap(~name, scales = "free") +
+  scale_fill_viridis_d("Model", option = "C") + thm +
+  ggtitle("shallow, large shallow and warm lakes")
+
+ggpubr::ggarrange(p_dl, p_ol, ncol = 2, common.legend = TRUE)
+ggsave("Plots/deeper_shallower_perf.png", width = 13, height = 7)
 
 ##-------- relate calibrated parameter values to lake characteristics ----
 
