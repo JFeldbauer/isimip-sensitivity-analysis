@@ -486,7 +486,6 @@ p_rmsec2 <- best_all |>
   thm + scale_fill_viridis_d("Model", option = "C") +
   facet_grid(best_met~kmcluster, scales = "free_y") + theme(legend.position = "top") +
   xlab("Model") + ylab("") +
-  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
 
