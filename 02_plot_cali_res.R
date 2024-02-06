@@ -500,6 +500,25 @@ lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
 ggsave("Plots/par_value_cluster.png", width = 17, height = 13, bg = "white")
 
 
+# Distribution of scaling factors - RMSE only
+plts <- list()
+vars <- c("wind_speed", "swr", "Kw")
+
+for(i in seq_along(vars)){
+  plts[[i]] <- best_all |> subset(best_met == "rmse") |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+    ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
+                          col = "grey42") +
+    geom_boxplot(aes(x = model, y = .data[[vars[i]]], fill = model)) +
+    facet_grid(.~kmcluster) +
+    scale_fill_viridis_d("Model", option = "C") + thm +
+    xlab("Cluster") + ylab(paste("Calibrated", vars[i], "scaling (-)")) +
+    guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+    theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
+  
+}
+ggpubr::ggarrange(plotlist = plts, nrow = 3, common.legend = T, align = "hv", legend = "right")
+ggsave("Plots/dist_scaling_cluster_model_RMSE_only.png", width = 13, height = 9)
+
 ##### Plot best parameter values vs lake characteristics
 lm <- read.csv("data/Lake_meta.csv")
 df_best_rmse = best_all |> filter(best_met == "rmse") |>
