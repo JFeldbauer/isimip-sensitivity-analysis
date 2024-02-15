@@ -79,7 +79,27 @@ res |> group_by(lake) |>
   ggplot() + geom_col(aes(x = n, y = freq)) + thm +
   xlab("Number of different 'best' model") + ylab("Proportion (-)")
 
-
+# look ath how the other performance metrics are doing compared on
+# which one you use to select parameters
+p_cor_met <- list()
+for(b in unique(best_all$best_met)) {
+  p_cor_met[[b]] <- ggpubr::ggarrange(
+  best_all |> filter(best_met == b) |>
+    ggplot() + geom_point(aes_string(x = b, y = "rmse", col = "model")) +
+    thm + scale_color_viridis_d("Model", option = "C"),
+  best_all |> filter(best_met == b) |>
+    ggplot() + geom_point(aes_string(x = b, y = "r", col = "model")) +
+    thm + scale_color_viridis_d("Model", option = "C"),
+  best_all |> filter(best_met == b) |>
+    ggplot() + geom_point(aes_string(x = b, y = "nse", col = "model")) +
+    thm + scale_color_viridis_d("Model", option = "C"),
+  best_all |> filter(best_met == b) |>
+    ggplot() + geom_point(aes_string(x = b, y = "bias", col = "model")) +
+    thm + scale_color_viridis_d("Model", option = "C"),
+  ncol = 4, common.legend = TRUE)
+}
+p_cor_met <- ggpubr::ggarrange(plotlist = p_cor_met, nrow = 4,
+                               common.legend = TRUE)
 
 ##--------------- statistical models for best model/performacne ----------------
 # fit multinomial log-linear model 
