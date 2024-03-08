@@ -46,20 +46,29 @@ p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
   mutate(depth_bin = as.numeric(as.character(depth_bin))) |>
   group_by(model, lake, depth_bin, kmcluster, datetime) |>
   reframe(rmse = sqrt(mean(resid^2))) |>
+  group_by(model, depth_bin, kmcluster, lake) |>
+  reframe(rmse = median(rmse)) |>
   group_by(model, depth_bin, kmcluster) |>
   reframe(sd_rmse = sd(rmse, na.rm = TRUE),
           mean_rmse = mean(rmse, na.rm = TRUE),
           median_rmse = median(rmse, na.rm = TRUE),
           q25_rmse = quantile(rmse, 0.25, na.rm = TRUE),
-          q75_rmse = quantile(rmse, 0.75, na.rm = TRUE)) |>
+          q75_rmse = quantile(rmse, 0.75, na.rm = TRUE),
+          q05_rmse = quantile(rmse, 0.05, na.rm = TRUE),
+          q95_rmse = quantile(rmse, 0.95, na.rm = TRUE),
+          min_rmse = min(rmse, na.rm = TRUE),
+          max_rmse = max(rmse, na.rm = TRUE)) |>
   ggplot() +
   # geom_ribbon(aes(x = depth_bin, ymin =mean_rmse - sd_rmse,
   #                ymax = mean_rmse + sd_rmse, fill = model)) +
-  geom_line(aes(x = depth_bin, y = median_rmse, col = model)) +
-  geom_point(aes(x = depth_bin, y = median_rmse, col = model), size = 4) +
-  geom_errorbar(aes(x = depth_bin, ymin = q25_rmse,
-                    ymax = q75_rmse, col = model),
-                    width = .025) +
+  geom_line(aes(x = depth_bin + (as.numeric(as.factor(model))-1)/80,
+                y = median_rmse, col = model), lty = "dashed") +
+  geom_point(aes(x = depth_bin + (as.numeric(as.factor(model))-1)/80,
+                 y = median_rmse, col = model), size = 4) +
+  geom_errorbar(aes(x = depth_bin + (as.numeric(as.factor(model))-1)/80,
+                    ymin = q05_rmse,
+                    ymax = q95_rmse, col = model),
+                    width = .025, linewidth = 1.15) +
     # geom_smooth(aes(y = rel_resid, x = rel_depth,
   #                 col = model, fill = model)) +
   scale_x_reverse() + coord_flip() +
