@@ -80,14 +80,17 @@ p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
 
 ggsave("Plots/profiles_best_rmse.png", p_prfl, width = 13, height = 9)
 
+## choose which function to use for thermocline depth
+thermo_fun <- function(...) thermo.depth(...)
+# thermo_fun <- function(...) center.buoyancy(...)
 
 # calculate thermocline depth for each lake and observation
 thrm_dpth <- dat |> 
-  distinct(lake, datetime, depth, obs_temp) |>
-  group_by(lake, datetime) |>
-  reframe(thermo_depth = thermo.depth(obs_temp, depth))
+  distinct(lake, datetime, depth, obs_temp) |> arrange(lake, datetime, depth) |>
+  group_by(lake, datetime) |> filter(length(unique(depth)) > 2) |>
+  reframe(thermo_depth = thermo_fun(obs_temp, depth))
 
-# calculate RMSE at the thermocline for each lake and model
+# calculate RMSE for water temperature at the thermocline for each lake and model
 dat_thermo <- dat |> left_join(thrm_dpth) |> group_by(lake, datetime) |>
   reframe(dist_thermo = depth - thermo_depth,
           obs_temp = obs_temp,
@@ -101,6 +104,21 @@ dat_thermo <- dat |> left_join(thrm_dpth) |> group_by(lake, datetime) |>
 p_thermo <- dat_thermo |> ggplot() + geom_boxplot(aes(x = model, y = rmse, fill = model)) +
   facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", "C") + thm +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
-  xlab("RMSE (K)") + ylab("Model")
+  ylab("RMSE (K)") + xlab("Model")
 
-ggsave("Plots/rmse_thermocline.png", p_thermo, width = 11, height = 6)
+ggsave("Plots/rmse_at_thermocline.png", p_thermo, width = 11, height = 6)
+
+# calculate RMSE for thermocline depth (in m)
+rmse_thermo <- dat |> 
+  group_by(lake, datetime, model) |>
+  filter(length(unique(depth)) > 2) |>
+  reframe(thermo_depth_sim = thermo_fun(sim_temp, depth)) |>
+  left_join(thrm_dpth) |> na.omit() |> group_by(lake, model) |>
+  reframe(rmse_thrm = sqrt(mean((thermo_depth_sim - thermo_depth)^2))) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_boxplot(aes(x = model, y = rmse_thrm, fill = model)) +
+  facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", "C") + thm +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
+  ylab("RMSE (m)") + xlab("Model") + scale_y_log10()
+
+ggsave("Plots/rmse_thermocline.png", rmse_thermo, width = 11, height = 6)
