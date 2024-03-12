@@ -101,6 +101,6 @@ dat_thermo <- dat |> left_join(thrm_dpth) |> group_by(lake, datetime) |>
 p_thermo <- dat_thermo |> ggplot() + geom_boxplot(aes(x = model, y = rmse, fill = model)) +
   facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", "C") + thm +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
-  xlab("RMSE (K)") + ylab("Model")
+  ylab("RMSE (K)") + xlab("Model")
 
 ggsave("Plots/rmse_thermocline.png", p_thermo, width = 11, height = 6)
