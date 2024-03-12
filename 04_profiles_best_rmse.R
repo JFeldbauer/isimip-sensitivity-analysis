@@ -13,6 +13,7 @@ library(ggpubr)
 library(gridExtra)
 library(ggExtra)
 library(ggdendro)
+library(rLakeAnalyzer)
 
 ##-------------- read in data ----------------------------------------------
 # source settings script
@@ -78,3 +79,28 @@ p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
   ylab("RMSE (°C)") + xlab("Relative depth (-)")
 
 ggsave("Plots/profiles_best_rmse.png", p_prfl, width = 13, height = 9)
+
+
+# calculate thermocline depth for each lake and observation
+thrm_dpth <- dat |> 
+  distinct(lake, datetime, depth, obs_temp) |>
+  group_by(lake, datetime) |>
+  reframe(thermo_depth = thermo.depth(obs_temp, depth))
+
+# calculate RMSE at the thermocline for each lake and model
+dat_thermo <- dat |> left_join(thrm_dpth) |> group_by(lake, datetime) |>
+  reframe(dist_thermo = depth - thermo_depth,
+          obs_temp = obs_temp,
+          sim_temp = sim_temp,
+          model = model) |> filter(!is.na(dist_thermo)) |>
+  group_by(lake, datetime) |> slice_min(abs(dist_thermo)) |>
+  group_by(lake, model) |>
+  reframe(rmse = sqrt(mean((obs_temp - sim_temp)^2))) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name"))
+
+p_thermo <- dat_thermo |> ggplot() + geom_boxplot(aes(x = model, y = rmse, fill = model)) +
+  facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", "C") + thm +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
+  xlab("RMSE (K)") + ylab("Model")
+
+ggsave("Plots/rmse_thermocline.png", p_thermo, width = 11, height = 6)
