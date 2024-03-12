@@ -87,7 +87,7 @@ thrm_dpth <- dat |>
   group_by(lake, datetime) |>
   reframe(thermo_depth = thermo.depth(obs_temp, depth))
 
-# calculate RMSE at the thermocline for each lake and model
+# calculate RMSE for water temperature at the thermocline for each lake and model
 dat_thermo <- dat |> left_join(thrm_dpth) |> group_by(lake, datetime) |>
   reframe(dist_thermo = depth - thermo_depth,
           obs_temp = obs_temp,
@@ -103,4 +103,18 @@ p_thermo <- dat_thermo |> ggplot() + geom_boxplot(aes(x = model, y = rmse, fill 
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
   ylab("RMSE (K)") + xlab("Model")
 
-ggsave("Plots/rmse_thermocline.png", p_thermo, width = 11, height = 6)
+ggsave("Plots/rmse_at_thermocline.png", p_thermo, width = 11, height = 6)
+
+# calculate RMSE for thermocline depth (in m)
+rmse_thermo <- dat |> 
+  group_by(lake, datetime, model) |>
+  reframe(thermo_depth_sim = thermo.depth(sim_temp, depth)) |>
+  left_join(thrm_dpth) |> na.omit() |> group_by(lake, model) |>
+  reframe(rmse_thrm = sqrt(mean((thermo_depth_sim - thermo_depth)^2))) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() + geom_boxplot(aes(x = model, y = rmse_thrm, fill = model)) +
+  facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", "C") + thm +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
+  ylab("RMSE (m)") + xlab("Model")
+
+ggsave("Plots/rmse_thermocline.png", rmse_thermo, width = 11, height = 6)
