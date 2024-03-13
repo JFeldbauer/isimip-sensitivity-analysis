@@ -464,7 +464,10 @@ ggsave("Plots/best_model_per_clust.png", p_bmc, width = 13, height = 9)
 p_rmsec <- s_best_all |>
   left_join(dat_clust) |>
   select(lake, model, kmcluster, !!p_metrics, best_met) |>
-  pivot_longer(!!p_metrics) |> slice(which(best_met == name)) |>
+  pivot_longer(!!p_metrics) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met)),
+         name = ifelse(name == "bias", name, toupper(name))) |>
+  slice(which(best_met == name)) |>
   ggplot() + geom_violin(aes(y = value, x = as.numeric(kmcluster),
                              fill = kmcluster)) +
   geom_jitter(aes(y = value,  x = as.numeric(kmcluster)), height = 0,
@@ -478,7 +481,10 @@ p_rmsec <- s_best_all |>
 p_rmsec2 <- best_all |>
   left_join(dat_clust) |>
   select(lake, model, kmcluster, !!p_metrics, best_met) |>
-  pivot_longer(!!p_metrics) |> slice(which(best_met == name)) |>
+  pivot_longer(!!p_metrics) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met)),
+         name = ifelse(name == "bias", name, toupper(name))) |>
+  slice(which(best_met == name)) |>
   ggplot() + geom_violin(aes(y = value, x = model,
                              fill = model)) +
   geom_jitter(aes(y = value,  x = model), height = 0,
@@ -490,8 +496,8 @@ p_rmsec2 <- best_all |>
 
 
 ggsave("Plots/pca_cluster.png", p_pca, width = 11, height = 7, bg = "white")
-ggsave("Plots/performance_cluster.png", p_rmsec, width = 11, height = 7, bg = "white")
-ggsave("Plots/performance_cluster_all.png", p_rmsec2, width = 13, height = 7, bg = "white")
+ggsave("Plots/performance_cluster.pdf", p_rmsec, width = 11, height = 7, bg = "white")
+ggsave("Plots/performance_cluster_all.pdf", p_rmsec2, width = 13, height = 7, bg = "white")
 
 # distributuin of the lake characteristics
 
@@ -543,5 +549,5 @@ p_clst_char <- lapply(c(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
   return(p)
   }) |> ggpubr::ggarrange(plotlist = _)
 
-ggsave("Plots/clust_char.png", p_clst_char, width = 16, height = 12, bg = "white")
+ggsave("Plots/clust_char.pdf", p_clst_char, width = 16, height = 12, bg = "white")
 

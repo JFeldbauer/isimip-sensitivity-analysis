@@ -176,7 +176,9 @@ p <- list()
 for(m in p_metrics) {
   
   p_dtmp <-  best_all_a |> pivot_longer(!!p_metrics) |>
-    filter(best_met == name & best_met == m) |>
+    mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met)),
+            name = ifelse(name == "bias", name, toupper(name))) |>
+    filter(best_met == name & best_met == ifelse(m == "bias", m, toupper(m))) |>
     ggplot() +
     geom_histogram(aes(x = value, y = after_stat(count)),
                    bins = 30, col = 1) +
@@ -186,15 +188,17 @@ for(m in p_metrics) {
   p_pie <- count_best |> setNames(c("Model", p_metrics)) |>
     pivot_longer(!!m) |> arrange(rev(Model)) |> ggplot() +
     geom_col(aes(x = "", y = value, fill = Model),
-             col = "grey42") +
+             col = "white") +
     geom_text(aes(x = "", y = value, label = paste0(value ,"%")),
-              position = position_stack(vjust=0.5), size = 3.5) +
+              position = position_stack(vjust=0.46),
+              size = 2.75, col = "grey42") +
     coord_polar("y", start = 0) + theme_void(base_size = 11) +
     labs(x = NULL, y = NULL, fill = NULL) +
     theme(legend.position = "right",
           plot.margin = margin(0,0,0,0),
           legend.key.height = unit(0.3, "cm"),
-          legend.key.width = unit(0.3, "cm"))
+          legend.key.width = unit(0.3, "cm")) +
+    scale_fill_viridis_d("Model", option = "C")
   
   # combine the two previous plots
   
@@ -203,12 +207,12 @@ for(m in p_metrics) {
   
   p[[m]] <- p_dtmp + annotation_custom(ggplotGrob(p_pie),
                                        xmin = ifelse(m == "rmse",
-                                                     mean(xrng) + 0.1*diff(xrng),
-                                                     min(xrng) - 0.1*diff(xrng)),
+                                                     mean(xrng) + 0.04*diff(xrng),
+                                                     min(xrng) - 0.12*diff(xrng)),
                                        xmax = ifelse(m == "rmse",
-                                                     max(xrng) + 0.1*diff(xrng),
-                                                     mean(xrng) - 0.1*diff(xrng)),
-                                       ymin = mean(yrng),
+                                                     max(xrng) + 0.12*diff(xrng),
+                                                     mean(xrng) - 0.04*diff(xrng)),
+                                       ymin = mean(yrng) - 0.175*diff(yrng),
                                        ymax = max(yrng) + 0.075*diff(yrng))
   
   
@@ -216,7 +220,7 @@ for(m in p_metrics) {
 }
 
 p_pie <- ggarrange(plots = p, ncol = 2, nrow = 2)
-ggsave("Plots/best_fit_pie.png", p_pie, width = 13, height = 7)
+ggsave("Plots/best_fit_pie.pdf", p_pie, width = 13, height = 7)
 
 # distribution of the best parameter per model and lake for all metrics
 p_dist_lake <- best_all |> pivot_longer(!!p_metrics) |>
@@ -263,7 +267,7 @@ best_all |> filter(best_met == "rmse") |>
         legend.position = "top") +
   guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
-ggsave("Plots/mapisimip.png", width = 11, height = 7, bg = "white")
+ggsave("Plots/mapisimip.pdf", width = 11, height = 7, bg = "white")
 
 ## function that plots relating min RMSE to lake characteristics
 plot_meta <- function(data, measure = "rmse") {
@@ -340,6 +344,8 @@ res |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
 
 # check if the same models perform good or bad along the four models
 p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |> 
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met)),
+         name = ifelse(name == "bias", name, toupper(name))) |>
   group_by(lake, best_met, name) |> filter(best_met == name) |>
   reframe(range = diff(range(value)),
           sd = sd(value,),
@@ -357,6 +363,8 @@ p_mcomp1 <- best_all |> pivot_longer(!!p_metrics) |>
   guides(fill = guide_legend(nrow = 2, byrow = TRUE))
 
 p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met)),
+         name = ifelse(name == "bias", name, toupper(name))) |>
   group_by(lake, best_met, name) |> filter(best_met == name) |>
   reframe(range = diff(range(value)),
           sd = sd(value),
@@ -377,6 +385,8 @@ p_mcomp2 <- best_all |> pivot_longer(!!p_metrics) |>
 
 
 p_mcomp3 <- best_all |> pivot_longer(!!p_metrics) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met)),
+         name = ifelse(name == "bias", name, toupper(name))) |>
   group_by(lake, best_met, name) |> filter(best_met == name) |>
   reframe(range = diff(range(value)),
           sd = sd(value),
@@ -395,7 +405,7 @@ p_mcomp3 <- best_all |> pivot_longer(!!p_metrics) |>
   guides(color = guide_legend(nrow = 2, byrow = TRUE))
 
 
-ggsave("Plots/range_best_model.png", p_mcomp1, width = 13, height = 9,
+ggsave("Plots/range_best_model.pdf", p_mcomp1, width = 13, height = 9,
        bg = "white")
 
 ggsave("Plots/poorest_best_model.png", p_mcomp2, width = 13, height = 9,
@@ -432,6 +442,7 @@ ggsave("Plots/deeper_shallower_perf.png", width = 13, height = 7)
 
 # wind speed scaling
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
   geom_boxplot(aes(x = as.numeric(kmcluster), y = wind_speed,
@@ -443,6 +454,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
 ggsave("Plots/dist_wind_scaling_cluster_model.png", width = 13, height = 9)
 
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
   geom_boxplot(aes(x = model, y = wind_speed,
@@ -453,10 +465,11 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
-ggsave("Plots/dist_wind_scaling_cluster.png", width = 13, height = 9)
+ggsave("Plots/dist_wind_scaling_cluster.pdf", width = 13, height = 9)
 
 # swr scaling
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
   geom_boxplot(aes(x = as.numeric(kmcluster), y = swr, fill = kmcluster)) +
@@ -467,6 +480,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
 ggsave("Plots/dist_swr_scaling_cluster_model.png", width = 13, height = 9)
 
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
   ggplot() + geom_hline(aes(yintercept = 1), lwd = 1.25, lty = "dashed",
                         col = "grey42") +
   geom_boxplot(aes(x = model, y = swr, fill = model)) +
@@ -480,6 +494,7 @@ ggsave("Plots/dist_swr_scaling_cluster.png", width = 13, height = 9)
 
 # kw scaling
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
   ggplot() +
   geom_boxplot(aes(x = as.numeric(kmcluster), y = Kw, fill = kmcluster)) +
   facet_grid(best_met~model) +
@@ -491,6 +506,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
 ggsave("Plots/dist_kw_scaling_cluster_model.png", width = 13, height = 9)
 
 best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
   ggplot() +
   geom_boxplot(aes(x = model, y = Kw, fill = model)) +
   facet_grid(best_met~kmcluster) +
@@ -505,6 +521,7 @@ ggsave("Plots/dist_kw_scaling_cluster.png", width = 13, height = 9)
 # all model specific parameter together
 lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
   best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+    mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
     pivot_longer(cols = !!par_names) |> filter(model == m) |>
     filter(!(name %in% c("wind_speed", "swr", "Kw")))|>
     select(best_met, value, kmcluster, name) |> na.omit() |>
@@ -517,7 +534,7 @@ lapply(c("FLake", "GLM", "GOTM", "Simstrat"), function(m){
   ggpubr::ggarrange(plotlist = _, labels = c("FLake", "GLM", "GOTM", "Simstrat"),
             common.legend = TRUE, ncol = 1, legend = "right")
 
-ggsave("Plots/par_value_cluster.png", width = 17, height = 13, bg = "white")
+ggsave("Plots/par_value_cluster.pdf", width = 17, height = 13, bg = "white")
 
 
 # Distribution of scaling factors - RMSE only
@@ -543,7 +560,7 @@ best_all |> subset(best_met == "rmse") |>
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
-ggsave("Plots/dist_scaling_cluster_model_RMSE_only.png", width = 13, height = 9)
+ggsave("Plots/dist_scaling_cluster_model_RMSE_only.pdf", width = 13, height = 9)
 
 ##### Plot best parameter values vs lake characteristics
 lm <- read.csv("data/Lake_meta.csv")

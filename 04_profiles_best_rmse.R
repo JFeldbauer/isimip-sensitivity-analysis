@@ -101,8 +101,9 @@ dat_thermo <- dat |> left_join(thrm_dpth) |> group_by(lake, datetime) |>
   reframe(rmse = sqrt(mean((obs_temp - sim_temp)^2))) |>
   left_join(meta, by = c("lake" = "Lake.Short.Name"))
 
-p_thermo <- dat_thermo |> ggplot() + geom_boxplot(aes(x = model, y = rmse, fill = model)) +
-  facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", "C") + thm +
+p_thermo <- dat_thermo |> ggplot() +
+  geom_boxplot(aes(x = model, y = rmse, fill = model)) +
+  facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", option = "C") + thm +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
   ylab("RMSE (K)") + xlab("Model")
 
@@ -117,8 +118,14 @@ rmse_thermo <- dat |>
   reframe(rmse_thrm = sqrt(mean((thermo_depth_sim - thermo_depth)^2))) |>
   left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() + geom_boxplot(aes(x = model, y = rmse_thrm, fill = model)) +
-  facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", "C") + thm +
+  facet_grid(.~kmcluster) + scale_fill_viridis_d("Model", option = "C") + thm +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
   ylab("RMSE (m)") + xlab("Model") + scale_y_log10()
 
-ggsave("Plots/rmse_thermocline.png", rmse_thermo, width = 11, height = 6)
+ggsave("Plots/rmse_thermocline.pdf", rmse_thermo, width = 11, height = 6)
+
+p_both <- ggpubr::ggarrange(p_prfl + ggtitle("(A) normalized profiles of RMSE"),
+                    p_thermo + xlab("") + ggtitle("(B) RMSE at thermocline depth"),
+                    ncol = 1, common.legend = TRUE)
+
+ggsave("Plots/profile_and_thermo_rmse.pdf", p_both, width = 13, height = 12)

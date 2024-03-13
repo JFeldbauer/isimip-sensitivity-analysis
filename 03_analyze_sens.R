@@ -68,7 +68,9 @@ res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
 dat_iat <- res_o |> group_by(lake, model, var) |> reframe(iat = 1 - sum(S1)) |>
   left_join(meta, by = c("lake" = "Lake.Short.Name"))
 
-dat_iat |> ggplot() + geom_boxplot(aes(x = as.numeric(kmcluster),
+dat_iat |> 
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
+  ggplot() + geom_boxplot(aes(x = as.numeric(kmcluster),
                               y = iat, fill = kmcluster)) +
   facet_grid(var~model) +
   thm + xlab("Cluster") + ylab(" interaction measure") +
@@ -82,7 +84,9 @@ ggsave("Plots/interaction_clust.png", width = 11, height = 8)
 res_o |> pivot_longer(cols = c(delta, S1)) |> filter(names != "dummy") |>
   mutate(name = case_match(name,
                            "delta" ~ "\u03B4",
-                           "S1" ~ "S1")) |> ggplot() +
+                           "S1" ~ "S1")) |>
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
+  ggplot() +
   geom_boxplot(aes(x = names, y = value, fill = name)) +
   facet_grid(var ~ model, scales = "free") +
   scale_fill_manual("Sensitivity \n measure",
@@ -90,7 +94,7 @@ res_o |> pivot_longer(cols = c(delta, S1)) |> filter(names != "dummy") |>
   thm + xlab("parameter") +
   theme(axis.text.x=element_text(angle = -60, hjust = 0)) 
 
-ggsave("Plots/sens_value.png", width = 11, height = 9)
+ggsave("Plots/sens_value.pdf", width = 11, height = 9)
 
 
 # calculate single most sensitive parameter for each lake and model
@@ -120,7 +124,9 @@ res_mip |> pivot_longer(cols = par_d) |>
   mutate(name = case_match(name,
                            "par_d" ~ "\u03B4",
                            "par_S1" ~ "S1")) |>
-  left_join(meta, by = c("lake" = "Lake.Short.Name")) |> ggplot() +
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
+  ggplot() +
   geom_histogram(aes(x = value, fill = kmcluster),
                  stat = "count", position = "dodge", col = 1) +
   facet_grid(var~model, scales = "free_x") + thm +
@@ -182,6 +188,7 @@ delta_gip <- res_gip |> pivot_longer(seq(4, 8, by = 2)) |>
 
 #rbind(delta_gip, S1_gip) 
 delta_gip |> filter(frac == "1") |>
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
   ggplot() +
   geom_histogram(aes(x = par, fill = meas), stat = "count", position = "dodge") +
   facet_grid(var~model, scales = "free_x") + thm +
@@ -196,6 +203,7 @@ ggsave("Plots/count_sens.png", width = 14, height = 11)
 #rbind(delta_gip, S1_gip) |>
  delta_gip |> filter(frac == "1") |>
   left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
   ggplot() + geom_histogram(aes(x = par,  fill = kmcluster),
                             stat = "count", position = "dodge",
                             col = 1) + 
@@ -214,13 +222,14 @@ delta_gip |> filter(frac == "1") |>
   group_by(model, kmcluster, var) |> mutate(cnt = cnt/sum(cnt)) |>
   ungroup() |>
   #complete(model, kmcluster, var, par) |>
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
   ggplot() + geom_tile(aes(x = par,  y = kmcluster, fill = cnt)) + 
   facet_grid(var~model, scales = "free_x") + thm + grids() +
   scale_fill_viridis_c("Frequency", option = "C") +
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   xlab("Parameter") + ylab("Cluster")
 
-ggsave("Plots/freq_sens_clust.png", width = 14, height = 11)
+ggsave("Plots/freq_sens_clust.pdf", width = 14, height = 11)
 
 
 ## plot distribution of number of sensitive parameters
@@ -228,13 +237,14 @@ ggsave("Plots/freq_sens_clust.png", width = 14, height = 11)
 delta_gip |> group_by(model, var, frac, lake, meas) |>
   reframe(n = n()) |> mutate(frac = factor(frac, levels = c("1", "75", "05"),
                                            labels = c("100%", "75%", "50%"))) |>
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
   ggplot() + geom_histogram(aes(x = n,  fill = frac),
                             stat = "count", position = "dodge") + 
   facet_grid(var~model) + thm + grids() +
   scale_fill_viridis_d("Fraction of total sum", option = "D") +
   xlab("Number of parameters contributing")
 
-ggsave("Plots/count_imp_par.png", width = 14, height = 11)
+ggsave("Plots/count_imp_par.pdf", width = 14, height = 11)
 
 ## alternative plot
 # rbind(delta_gip, S1_gip)
