@@ -14,6 +14,7 @@ library(gridExtra)
 library(ggExtra)
 library(ggdendro)
 library(rLakeAnalyzer)
+library(lubridate)
 
 ##-------------- read in data ----------------------------------------------
 # source settings script
@@ -34,11 +35,6 @@ dat <- left_join(dat, meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(rel_depth = ifelse(is.na(rel_depth), 0, rel_depth))
 
 
-# test if the result is consistent
-dat |> group_by(lake, model, kmcluster) |> reframe(rmse = sqrt(mean(resid^2))) |>
-  ggplot() + geom_boxplot(aes(x = model, y = rmse, fill = model)) +
-  facet_wrap(.~kmcluster) + thm +
-  scale_fill_viridis_d("Model", option = "C")
 
 p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
                                         breaks = seq(0, 1, 0.1),
@@ -46,9 +42,7 @@ p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
                                         include.lowest = TRUE)) |>
   mutate(depth_bin = as.numeric(as.character(depth_bin))) |>
   group_by(model, lake, depth_bin, kmcluster, datetime) |>
-  reframe(rmse = sqrt(mean(resid^2))) |>
-  group_by(model, depth_bin, kmcluster, lake) |>
-  reframe(rmse = median(rmse)) |>
+  reframe(rmse = sqrt(mean(resid^2, na.rm = TRUE))) |>
   group_by(model, depth_bin, kmcluster) |>
   reframe(sd_rmse = sd(rmse, na.rm = TRUE),
           mean_rmse = mean(rmse, na.rm = TRUE),
@@ -67,8 +61,8 @@ p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
   geom_point(aes(x = depth_bin + (as.numeric(as.factor(model))-1)/80,
                  y = median_rmse, col = model), size = 4) +
   geom_errorbar(aes(x = depth_bin + (as.numeric(as.factor(model))-1)/80,
-                    ymin = q05_rmse,
-                    ymax = q95_rmse, col = model),
+                    ymin = q25_rmse,
+                    ymax = q75_rmse, col = model),
                     width = .025, linewidth = 1.15) +
     # geom_smooth(aes(y = rel_resid, x = rel_depth,
   #                 col = model, fill = model)) +
@@ -80,8 +74,9 @@ p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
 
 ggsave("Plots/profiles_best_rmse.png", p_prfl, width = 13, height = 9)
 
+
 ## choose which function to use for thermocline depth
-thermo_fun <- function(...) thermo.depth(...)
+ thermo_fun <- function(...) thermo.depth(...)
 # thermo_fun <- function(...) center.buoyancy(...)
 
 # calculate thermocline depth for each lake and observation
@@ -98,7 +93,7 @@ dat_thermo <- dat |> left_join(thrm_dpth) |> group_by(lake, datetime) |>
           model = model) |> filter(!is.na(dist_thermo)) |>
   group_by(lake, datetime) |> slice_min(abs(dist_thermo)) |>
   group_by(lake, model) |>
-  reframe(rmse = sqrt(mean((obs_temp - sim_temp)^2))) |>
+  reframe(rmse = sqrt(mean((obs_temp - sim_temp)^2, na.rm = TRUE))) |>
   left_join(meta, by = c("lake" = "Lake.Short.Name"))
 
 p_thermo <- dat_thermo |> ggplot() +
