@@ -118,33 +118,13 @@ df_best_a_rmse |>
   nrow() /
   nrow(df_best_a_rmse) * 100
 
-
 df_best <- best_all |> 
   filter(best_met == "rmse")
-df_best |> 
-  filter(rmse < rmse_threshold & model == "FLake") |> 
-  nrow() /
-  df_best |> 
-  filter(model == "FLake") |> 
-  nrow() * 100
-df_best |> 
-  filter(rmse < rmse_threshold & model == "GLM") |> 
-  nrow() /
-  df_best |> 
-  filter(model == "GLM") |> 
-  nrow() * 100
-df_best |> 
-  filter(rmse < rmse_threshold & model == "GOTM") |> 
-  nrow() /
-  df_best |> 
-  filter(model == "GOTM") |> 
-  nrow() * 100
-df_best |> 
-  filter(rmse < rmse_threshold & model == "Simstrat") |> 
-  nrow() /
-  df_best |> 
-  filter(model == "Simstrat") |> 
-  nrow() * 100
+setDT(df_best)
+rmse_table = df_best[, .(median_rmse = median(rmse),
+            perc_under_thresh = sum(rmse < rmse_threshold) / .N * 100),
+        by = model]
+kable(rmse_table, format = "pipe")
 
 ##--------------- statistical models for best model/performacne ----------------
 # fit multinomial log-linear model 
