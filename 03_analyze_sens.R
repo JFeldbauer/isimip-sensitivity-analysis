@@ -70,11 +70,21 @@ dat_iat <- res_o |> group_by(lake, model, var) |> reframe(iat = 1 - sum(S1)) |>
 
 dat_iat |> 
   mutate(var = ifelse(var == "bias", var, toupper(var))) |>
-  ggplot() + geom_boxplot(aes(x = as.numeric(kmcluster),
-                              y = iat, fill = kmcluster)) +
-  facet_grid(var~model) +
-  thm + xlab("Cluster") + ylab(" interaction measure") +
-  scale_fill_viridis_d("Cluster")
+  ggplot() + geom_boxplot(aes(x = model,
+                              y = iat, fill = var)) +
+  thm + xlab("Model") + ylab("Interaction measure") +
+  scale_fill_viridis_d("Performance metric", option = "H")
+
+dat_iat <- res_o |> group_by(lake, model, var) |> reframe(iat = 1 - sum(S1)) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name"))
+# same plot but split to clusters
+dat_iat |> 
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
+  ggplot() + geom_boxplot(aes(x = model,
+                              y = iat, fill = var)) +
+  facet_wrap(~kmcluster) +
+  thm + xlab("Model") + ylab("Interaction measure") +
+  scale_fill_viridis_d("Performance metric", option = "H")
 
 ggsave("Plots/interaction_clust.png", width = 11, height = 8)
 
@@ -287,7 +297,7 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   filter(names == "wind_speed") |> ggplot() +
   geom_boxplot(aes(x = model, y = delta, fill = model)) +
   facet_grid(var~kmcluster) + thm +
-  scale_fill_viridis_d("Model", option = "C") + xlab("Cluster") +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + xlab("Cluster") +
   ylab("Delta sensitivity wind scaling") +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
@@ -309,7 +319,7 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   filter(names == "swr") |> ggplot() +
   geom_boxplot(aes(x = model, y = delta, fill = model)) +
   facet_grid(var~kmcluster) + thm +
-  scale_fill_viridis_d("Model", option = "C") + xlab("Cluster") +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + xlab("Cluster") +
   ylab("Delta sensitivity swr scaling") +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 
@@ -332,7 +342,7 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
   filter(names == "Kw") |> ggplot() +
   geom_boxplot(aes(x = model, y = delta, fill = model)) +
   facet_grid(var~kmcluster) + thm +
-  scale_fill_viridis_d("Model", option = "C") + xlab("Cluster") +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + xlab("Cluster") +
   ylab("Delta sensitivity Kw scaling") +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
 

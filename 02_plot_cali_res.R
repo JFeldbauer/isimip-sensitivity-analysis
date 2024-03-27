@@ -189,16 +189,16 @@ for(m in p_metrics) {
     pivot_longer(!!m) |> arrange(rev(Model)) |> ggplot() +
     geom_col(aes(x = "", y = value, fill = Model),
              col = "white") +
-    geom_text(aes(x = "", y = value, label = paste0(value ,"%")),
+    geom_text(aes(x = 1.8, y = value, label = paste0(value ,"%")),
               position = position_stack(vjust=0.46),
-              size = 2.75, col = "grey42") +
+              size = 2.75, col = "black") +
     coord_polar("y", start = 0) + theme_void(base_size = 11) +
     labs(x = NULL, y = NULL, fill = NULL) +
     theme(legend.position = "right",
           plot.margin = margin(0,0,0,0),
           legend.key.height = unit(0.3, "cm"),
           legend.key.width = unit(0.3, "cm")) +
-    scale_fill_viridis_d("Model", option = "C")
+    scale_fill_viridis_d("Model", option = "C", end = 0.9)
   
   # combine the two previous plots
   
@@ -422,7 +422,7 @@ p_dl <- best_all |> pivot_longer(!!p_metrics) |>
   filter(as.numeric(kmcluster) %in% 1:2) |>
   ggplot() + geom_boxplot(aes(y = value, x = model, fill = model)) +
     facet_wrap(~name, scales = "free") +
-  scale_fill_viridis_d("Model", option = "C") + thm +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm +
   ggtitle("Deep and medium temperate lakes")
 
 # look at the other cluster
@@ -432,7 +432,7 @@ p_ol <- best_all |> pivot_longer(!!p_metrics) |>
   filter(as.numeric(kmcluster) %in% 3:5) |>
   ggplot() + geom_boxplot(aes(y = value, x = model, fill = model)) +
   facet_wrap(~name, scales = "free") +
-  scale_fill_viridis_d("Model", option = "C") + thm +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm +
   ggtitle("shallow, large shallow and warm lakes")
 
 ggpubr::ggarrange(p_dl, p_ol, ncol = 2, common.legend = TRUE)
@@ -460,7 +460,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   geom_boxplot(aes(x = model, y = wind_speed,
                    fill = model)) +
   facet_grid(best_met~kmcluster) +
-  scale_fill_viridis_d("Model", option = "C") + thm +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm +
   xlab("Cluster") + ylab("Calibrated wind scaling (-)") +
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
@@ -485,7 +485,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
                         col = "grey42") +
   geom_boxplot(aes(x = model, y = swr, fill = model)) +
   facet_grid(best_met~kmcluster) +
-  scale_fill_viridis_d("Model", option = "C") + thm +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm +
   xlab("Cluster") + ylab("Calibrated swr scaling (-)") +
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
@@ -510,7 +510,7 @@ best_all |> left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
   ggplot() +
   geom_boxplot(aes(x = model, y = Kw, fill = model)) +
   facet_grid(best_met~kmcluster) +
-  scale_fill_viridis_d("Model", option = "C") + thm +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm +
   xlab("Model") + ylab("Calibrated Kw scaling (-)") +
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   scale_y_log10() +
@@ -555,7 +555,7 @@ best_all |> subset(best_met == "rmse") |>
                         col = "grey42") +
   geom_boxplot(aes(x = model, y = value, fill = model)) +
   facet_grid(name~kmcluster, scales = "free") +
-  scale_fill_viridis_d("Model", option = "C") + thm +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm +
   xlab("Cluster") + ylab("Scaling (-)") +
   guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1))
