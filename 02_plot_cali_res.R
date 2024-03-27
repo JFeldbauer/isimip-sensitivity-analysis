@@ -101,6 +101,51 @@ for(b in unique(best_all$best_met)) {
 p_cor_met <- ggpubr::ggarrange(plotlist = p_cor_met, nrow = 4,
                                common.legend = TRUE)
 
+### median and below-treshold values for model performance
+df_best_a_rmse <- best_all_a |>
+  filter(best_met == "rmse")
+df_best_a_r <- best_all_a |>
+  filter(best_met == "r")
+
+median(df_best_a_rmse$rmse)
+median(df_best_a_r$r)
+
+# Calculate percentage below a certain threshold
+rmse_threshold <- 2
+
+df_best_a_rmse |> 
+  filter(rmse < rmse_threshold) |> 
+  nrow() /
+  nrow(df_best_a_rmse) * 100
+
+
+df_best <- best_all |> 
+  filter(best_met == "rmse")
+df_best |> 
+  filter(rmse < rmse_threshold & model == "FLake") |> 
+  nrow() /
+  df_best |> 
+  filter(model == "FLake") |> 
+  nrow() * 100
+df_best |> 
+  filter(rmse < rmse_threshold & model == "GLM") |> 
+  nrow() /
+  df_best |> 
+  filter(model == "GLM") |> 
+  nrow() * 100
+df_best |> 
+  filter(rmse < rmse_threshold & model == "GOTM") |> 
+  nrow() /
+  df_best |> 
+  filter(model == "GOTM") |> 
+  nrow() * 100
+df_best |> 
+  filter(rmse < rmse_threshold & model == "Simstrat") |> 
+  nrow() /
+  df_best |> 
+  filter(model == "Simstrat") |> 
+  nrow() * 100
+
 ##--------------- statistical models for best model/performacne ----------------
 # fit multinomial log-linear model 
 dat <- best_all_a |> filter(best_met == "rmse") |>
