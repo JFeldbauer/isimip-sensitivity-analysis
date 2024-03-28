@@ -86,7 +86,7 @@ dat_iat |>
   thm + xlab("Model") + ylab("Interaction measure") +
   scale_fill_viridis_d("Performance metric", option = "H")
 
-ggsave("Plots/interaction_clust.png", width = 11, height = 8)
+ggsave("Plots/interaction_clust.pdf", width = 11, height = 8)
 
 ##--------- single most sensitive parameter  ---------------------------
 
