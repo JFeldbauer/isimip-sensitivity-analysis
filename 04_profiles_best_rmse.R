@@ -180,24 +180,30 @@ count_best <- rmse_ens |> group_by(lake, kmcluster) |>
 p_cnt_ens <- count_best |>  arrange(rev(Model)) |> ggplot() +
   geom_col(aes(x = "", y = Fraction, fill = Model),
            col = "white") +
-  geom_text(aes(x = 1.8, y = Fraction, label = paste0(round(Fraction*100, 1) ,"%")),
+  geom_text(aes(x = 1.73, y = Fraction, label = paste0(round(Fraction*100, 1) ,"%")),
             position = position_stack(vjust=0.46),
-            size = 2.75, col = "black") +
-  coord_polar("y", start = 0) + theme_void(base_size = 11) +
-  labs(x = NULL, y = NULL, fill = NULL) +
+            size = 4, col = "black") +
+  coord_polar("y", start = 0) + theme_pubr(base_size = 16) +
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) + 
+  labs(x = " ", y = "", fill = NULL) +
   theme(legend.position = "right",
-        plot.margin = margin(0,0,0,0),
+        plot.margin = margin(0, 7, 0, 7),
         legend.key.height = unit(0.3, "cm"),
-        legend.key.width = unit(0.3, "cm")) +
+        legend.key.width = unit(0.3, "cm"),
+        panel.grid = element_blank()) +
   facet_grid(.~Cluster) + ylab("") +
-  scale_fill_manual("Model", values = c("black", viridis::plasma(4, , end = 0.9)))
+  scale_fill_manual("Model", values = c("black", viridis::plasma(4, end = 0.9)))
 
 p_viol_ens <- rmse_ens |> ggplot() + geom_violin(aes(x = model, y = rmse, fill = model), position = "dodge") +
   geom_jitter(aes(y = rmse,  x = model), height = 0,
               width = 0.125, size = 2.5, col = "grey42", alpha = 0.5) +
   facet_grid(.~kmcluster) + thm +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
-  scale_fill_manual("Model", values = c("black", viridis::plasma(4, , end = 0.9)))
+  scale_fill_manual("Model", values = c("black", viridis::plasma(4, end = 0.9))) +
+  xlab("Model") + ylab("RMSE (K)")
 
 ggpubr::ggarrange(p_cnt_ens, p_viol_ens, ncol = 1, common.legend = TRUE,
                   legend = "none")
+ggsave("Plots/count_best_ensemble_mean.pdf", width = 13, height = 9)
