@@ -35,11 +35,29 @@ dat <- left_join(dat, meta, by = c("lake" = "Lake.Short.Name")) |>
   mutate(rel_depth = ifelse(is.na(rel_depth), 0, rel_depth))
 
 
+# calculate ensemble mean
+dat_ens <-  dat |> select(1:8) |>
+  pivot_wider(id_cols = c(datetime, depth, lake, obs_temp),
+              names_from = model, values_from = sim_temp) |>
+  group_by(datetime, depth, lake) |>
+  reframe(obs_temp = obs_temp,
+          GLM = GLM,
+          GOTM = GOTM,
+          Simstrat = Simstrat,
+          FLake = FLake,
+          ensemble_mean = mean(c(GLM, GOTM, Simstrat, FLake), na.rm = TRUE)) |>
+  pivot_longer(5:9, names_to = "model", values_to = "sim_temp") |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  left_join(max_dept) |>
+  mutate(resid = sim_temp - obs_temp) |> mutate(rel_depth = depth/max_depth) |>
+  mutate(rel_depth = ifelse(is.na(rel_depth), 0, rel_depth))
 
-p_prfl <- dat |> mutate(depth_bin = cut(rel_depth,
-                                        breaks = seq(0, 1, 0.1),
-                                        labels = seq(0.05, 0.95, 0.1),
-                                        include.lowest = TRUE)) |>
+
+p_prfl <- dat |>
+  mutate(depth_bin = cut(rel_depth,
+                         breaks = seq(0, 1, 0.1),
+                         labels = seq(0.05, 0.95, 0.1),
+                         include.lowest = TRUE)) |>
   mutate(depth_bin = as.numeric(as.character(depth_bin))) |>
   group_by(model, lake, depth_bin, kmcluster, datetime) |>
   reframe(rmse = sqrt(mean(resid^2, na.rm = TRUE))) |>
@@ -142,3 +160,50 @@ p_both <- ggpubr::ggarrange(p_prfl + ggtitle("(A) normalized profiles of RMSE"),
 
 ggsave("Plots/profile_and_thermo_rmse.pdf", p_both, width = 13, height = 12)
 
+
+
+## check if ensemble mean is good predictor
+rmse_ens <- dat_ens |>
+  group_by(lake, model) |>
+  reframe(rmse = sqrt(mean((sim_temp - obs_temp)^2, na.rm = TRUE))) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(model = ifelse(model == "ensemble_mean", "Ensemble mean", model))
+
+count_best <- rmse_ens |> group_by(lake, kmcluster) |>
+  reframe(rmse = model[which.min(rmse)]) |>
+  pivot_longer(3) |> 
+  group_by(value, name, kmcluster) |>
+  reframe(n =n()) |> group_by(kmcluster) |>
+  reframe(value = value, n = n/sum(n)) |>
+  rename(Cluster = "kmcluster", Model = "value", Fraction = "n") 
+
+p_cnt_ens <- count_best |>  arrange(rev(Model)) |> ggplot() +
+  geom_col(aes(x = "", y = Fraction, fill = Model),
+           col = "white") +
+  geom_text(aes(x = 1.73, y = Fraction, label = paste0(round(Fraction*100, 1) ,"%")),
+            position = position_stack(vjust=0.46),
+            size = 4, col = "black") +
+  coord_polar("y", start = 0) + theme_pubr(base_size = 16) +
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) + 
+  labs(x = " ", y = "", fill = NULL) +
+  theme(legend.position = "right",
+        plot.margin = margin(0, 7, 0, 7),
+        legend.key.height = unit(0.3, "cm"),
+        legend.key.width = unit(0.3, "cm"),
+        panel.grid = element_blank()) +
+  facet_grid(.~Cluster) + ylab("") +
+  scale_fill_manual("Model", values = c("black", viridis::plasma(4, end = 0.9)))
+
+p_viol_ens <- rmse_ens |> ggplot() + geom_violin(aes(x = model, y = rmse, fill = model), position = "dodge") +
+  geom_jitter(aes(y = rmse,  x = model), height = 0,
+              width = 0.125, size = 2.5, col = "grey42", alpha = 0.5) +
+  facet_grid(.~kmcluster) + thm +
+  theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
+  scale_fill_manual("Model", values = c("black", viridis::plasma(4, end = 0.9))) +
+  xlab("Model") + ylab("RMSE (K)")
+
+ggpubr::ggarrange(p_cnt_ens, p_viol_ens, ncol = 1, common.legend = TRUE,
+                  legend = "none")
+ggsave("Plots/count_best_ensemble_mean.pdf", width = 13, height = 9)
