@@ -222,7 +222,7 @@ ggsave("Plots/count_sens.png", width = 14, height = 11)
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   xlab("Parameter")
 
-ggsave("Plots/count_sens_clust.png", width = 14, height = 11)
+ggsave("Plots/count_sens_clust.pdf", width = 14, height = 11)
 
 # different plot with frequencies
 #rbind(delta_gip, S1_gip)
