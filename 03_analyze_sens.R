@@ -31,7 +31,7 @@ res_cali <- read.csv("data/results_lhc.csv")
 meta <- readRDS("data_derived/lake_meta_data_derived.RDS")
 meta_desc <- readRDS("data_derived/lake_meta_desc_derived.RDS")
 
-# set sensitivity values that are smaller than the of the dummy variable
+# set sensitivity values that are smaller than the dummy variable
 # to zero
 res <- group_by(res, lake, model, var) |>
   reframe(delta = ifelse((delta - delta_conf) <=
@@ -87,6 +87,16 @@ dat_iat |>
   scale_fill_viridis_d("Performance metric", option = "H")
 
 ggsave("Plots/interaction_clust.pdf", width = 11, height = 8)
+
+dat_iat |> filter(iat > 0.2) |> ggplot() +
+  geom_histogram(aes(x = 1, fill = model, y = after_stat(count/sum(count)))) +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm
+
+dat_iat |> filter(iat > 0.2) |> ggplot() +
+  geom_histogram(aes(x = var, fill = model), stat = "count") +
+  scale_fill_viridis_d("Model", option = "C", end = 0.9) +
+  facet_wrap(.~kmcluster) + thm
+
 
 ##--------- single most sensitive parameter  ---------------------------
 
@@ -157,7 +167,7 @@ gmiv <- function(x, frac = .75) {
   tmp <- sort(x, decreasing = TRUE)
 
   
-  id <- which(cumsum(tmp)/sum(tmp) <= frac)
+  id <- which(cumsum(tmp)/sum(tmp) < frac)
   if(length(id) > 0) {
     im <- (max(id)) + 1
   } else {
@@ -169,32 +179,32 @@ gmiv <- function(x, frac = .75) {
 }
 
 # for each model, lake, and measure return the most sensitive parameters
-res_gip <- res |> group_by(lake, model, var) |> filter(delta != 0 & S1 != 0) |>
+res_gip <- res |> group_by(lake, model, var) |> 
   reframe(par_d_05 = paste0(names[delta %in% gmiv(delta, .5)], collapse = ", "),
           n_par_d_05 = length(names[delta %in% gmiv(delta, .5)]),
-          #par_S1_05 = paste0(names[S1 %in% gmiv(S1, .5)], collapse = ", "),
-          #n_par_S1_05 = length(names[S1 %in% gmiv(S1, .5)]),
+          par_S1_05 = paste0(names[S1 %in% gmiv(S1, .5)], collapse = ", "),
+          n_par_S1_05 = length(names[S1 %in% gmiv(S1, .5)]),
           par_d_75 = paste0(names[delta %in% gmiv(delta, .75)], collapse = ", "),
           n_par_d_75 = length(names[delta %in% gmiv(delta, .75)]),
-          #par_S1_75 = paste0(names[S1 %in% gmiv(S1, .75)], collapse = ", "),
-          #n_par_S1_75 = length(names[S1 %in% gmiv(S1, .75)]),
+          par_S1_75 = paste0(names[S1 %in% gmiv(S1, .75)], collapse = ", "),
+          n_par_S1_75 = length(names[S1 %in% gmiv(S1, .75)]),
           par_d_1 = paste0(names[delta %in% gmiv(delta, 1)], collapse = ", "),
-          n_par_d_1 = length(names[delta %in% gmiv(delta, 1)]))#,
-          #par_S1_1 = paste0(names[S1 %in% gmiv(S1, 1)], collapse = ", "),
-          #n_par_S1_1 = length(names[S1 %in% gmiv(S1, 1)]))
+          n_par_d_1 = length(names[delta %in% gmiv(delta, 1)]),
+          par_S1_1 = paste0(names[S1 %in% gmiv(S1, 1)], collapse = ", "),
+          n_par_S1_1 = length(names[S1 %in% gmiv(S1, 1)]))
 
 # plot distribution of most sensitive parameters over all lakes and models
 # for both measures
-delta_gip <- res_gip |> pivot_longer(seq(4, 8, by = 2)) |>
+delta_gip <- res_gip |> pivot_longer(seq(4, 12, by = 4)) |>
   filter(grepl("par_d_.*", name)) |>
   mutate(frac = gsub(".*_", "", name)) |> 
   group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
                                                    meas = "\u03B4")
-# S1_gip <- res_gip |>pivot_longer(seq(4, 14, by = 2)) |>
-#   filter(grepl("par_S1_.*", name)) |>
-#   mutate(frac = gsub(".*_", "", name)) |> 
-#   group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
-#                                                 meas = "S1")
+S1_gip <- res_gip |> pivot_longer(seq(6, 14, by = 4)) |>
+   filter(grepl("par_S1_.*", name)) |>
+   mutate(frac = gsub(".*_", "", name)) |> 
+   group_by(model, var, frac, lake) |> reframe(par = unlist(strsplit(value, ", ")),
+                                               meas = "S1")
 
 #rbind(delta_gip, S1_gip) 
 delta_gip |> filter(frac == "1") |>
@@ -272,8 +282,9 @@ delta_gip |> group_by(model, var, frac, lake, meas) |>
 ggsave("Plots/count_imp_par2.png", width = 14, height = 11)
 
 ## relate number of sensitive parameters to interaction measure
-delta_gip |> filter(frac == 1) |> group_by(model, var, frac, lake, meas) |> 
-  reframe(n = n()) |> left_join(dat_iat) |>
+rbind(delta_gip, S1_gip) |> filter(frac == "1") |> group_by(model, var, frac, lake, meas) |> 
+  reframe(n = n()) |> #pivot_wider(names_from = meas, values_from = n) |>
+  left_join(dat_iat) |> #mutate(d_n = δ - S1) |> 
   ggplot() + geom_point(aes(x = n, y = iat, col = kmcluster), size = 3) + 
   facet_grid(var~model) + scale_color_viridis_d("Cluster") + thm
 
@@ -363,9 +374,23 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   log <- rep(FALSE, length(pars))
   log[pars == "turb_param.k_min"] <- TRUE
   
-  spec <- viridis::viridis(15)
+  
+
   dat <- filter(res_cali, model == m & lake == l)
-  dat_best <- filter(dat, rmse < quantile(rmse, 0.1, na.rm = TRUE))
+  # calculate interaction quantity
+  S_interaction <-  1 - sum(sens$S1)
+  if (smet == "rmse") {
+    dat_best <- filter(dat, rmse < quantile(rmse, 0.1, na.rm = TRUE))
+  }
+  if (smet == "r") {
+    dat_best <- filter(dat, r > quantile(r, 0.9, na.rm = TRUE))
+  }
+  if (smet == "nse") {
+    dat_best <- filter(dat, nse > quantile(nse, 0.9, na.rm = TRUE))
+  }
+  if (smet == "bias") {
+    dat_best <- filter(dat, abs(bias) < quantile(abs(bias), 0.1, na.rm = TRUE))
+  }
   thm <- theme_pubr(base_size = 13) + grids()
   
   pl <- lapply(combn(pars, 2, simplify = FALSE), function(p) {
@@ -375,7 +400,7 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
       geom_point(data = dat,
                  aes_string(x = p[1], y = p[2], color = smet), shape = 15,
                  size = 1.5, alpha = 0.75) +
-      scale_colour_gradientn(colours = rev(spec)) + thm +
+      scale_colour_viridis_c() + thm +
       theme(legend.position = "none",
             plot.margin = margin(t = 20,    # Top margin
                                  r = 30,    # Right margin
@@ -396,7 +421,7 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
     geom_point(data = dat,
                aes_string(x = "swr", y = "wind_speed", color = smet), shape = 15,
                size = 1.5, alpha = 0.75) +
-    scale_colour_gradientn(colours = rev(spec))
+    scale_colour_viridis_c()
   legend <- get_legend(t)
   
   t <- as_ggplot(arrangeGrob(text_grob(paste0("model: ", m, "\n lake: ", l)),
@@ -476,12 +501,15 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
     }
   }
 
+
+  
   pl2[[21]] <- as_ggplot(text_grob("\u03B4"))
   pl2[[16]] <- as_ggplot(text_grob("S1"))
   pl2[[22]] <- ps1
   pl2[[17]] <- ps2
   pl2[[6]] <- t
-  
+  pl2[[11]] <- as_ggplot(text_grob(paste0("S_interaction = ",
+                                          round(S_interaction, 3))))
   do.call(grid.arrange, c(pl2, ncol = length(pars)-1, as.table = FALSE) )
   
   
@@ -505,7 +533,7 @@ ggsave("Plots/FLake_stechlin.png", plot = p_fl_stech, width = 17, height = 12)
 ggsave("Plots/Simstrat_erken.png", plot = p_sim_erk, width = 17, height = 12)
 
 
-# look at some of the lakes with large intzeraction measure
+# look at some of the lakes with large interaction measure
 dat_iat |> filter(iat > 0.35) |> select(lake, model, var, iat) |>
   print(n = Inf)
 
@@ -524,6 +552,9 @@ my_sens_plot(m = "Simstrat", l = "Tarawera", res_cali = res_cali,
 my_sens_plot(m = "Simstrat", l = "Chao", res_cali = res_cali,
              res_sens = res_o, smet = "r")
 
-my_sens_plot(m = "GLM", l = "Thun", res_cali = res_cali,
-             res_sens = res_o, smet = "nse")
+my_sens_plot(m = "GLM", l = "Chao", res_cali = res_cali,
+             res_sens = res_o, smet = "bias")
+
+my_sens_plot(m = "FLake", l = "Alqueva", res_cali = res_cali,
+             res_sens = res_o, smet = "bias")
 
