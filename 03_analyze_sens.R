@@ -13,6 +13,7 @@ library(ggpubr)
 library(gridExtra)
 library(ggExtra)
 library(ggdendro)
+library(akima)
 
 ##-------------- read in data ----------------------------------------------
 # source settings script
@@ -30,6 +31,9 @@ res_cali <- read.csv("data/results_lhc.csv")
 # load lake meta data
 meta <- readRDS("data_derived/lake_meta_data_derived.RDS")
 meta_desc <- readRDS("data_derived/lake_meta_desc_derived.RDS")
+
+# data frame with all metrics for best set per lake and per model
+best_all <- readRDS("data_derived/best_par_sets.RDS")
 
 # set sensitivity values that are smaller than the dummy variable
 # to zero
@@ -97,6 +101,12 @@ dat_iat |> filter(iat > 0.2) |> ggplot() +
   scale_fill_viridis_d("Model", option = "C", end = 0.9) +
   facet_wrap(.~kmcluster) + thm
 
+# compare iat with observed data
+dat_iat |>
+  ggplot() + geom_point(aes(x = Duration, y = iat, col = kmcluster), size = 3) +
+  facet_grid(~model) + xlab("Years with observations (-)") +
+  ylab("Interaction measure (-)") +
+  thm + scale_color_viridis_d("Cluster")
 
 ##--------- single most sensitive parameter  ---------------------------
 
@@ -232,7 +242,7 @@ ggsave("Plots/count_sens.png", width = 14, height = 11)
   theme(axis.text.x=element_text(angle = -55, hjust = 0)) +
   xlab("Parameter")
 
-ggsave("Plots/count_sens_clust.png", width = 14, height = 11)
+ggsave("Plots/count_sens_clust.pdf", width = 14, height = 11)
 
 # different plot with frequencies
 #rbind(delta_gip, S1_gip)
@@ -288,6 +298,20 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |> group_by(model, var, frac, la
   ggplot() + geom_point(aes(x = n, y = iat, col = kmcluster), size = 3) + 
   facet_grid(var~model) + scale_color_viridis_d("Cluster") + thm
 
+
+# plot iat against metric value of best performing parameter set
+rbind(S1_gip) |> filter(frac == "1") |> group_by(model, var, frac, lake, meas) |> 
+  reframe(np = n()) |> left_join(best_all, by = c("lake" = "lake",
+                                                 "model" = "model",
+                                                 "var" = "best_met")) |>
+  left_join(dat_iat, by = c("lake" = "lake",
+                            "model" = "model",
+                            "var" = "var")) |>
+  select(lake, model, var, iat, np, kmcluster, rmse, r, bias, nse) |>
+  pivot_longer(cols = 7:10) |> filter(var == name) |> select(-name) |>
+  ggplot() + geom_point(aes(y = iat, x = value)) +
+  facet_grid(.~var, scales = "free_x") +
+  thm
 
 ##--------------- look at sensitivity of scaling factors -----------
 
@@ -365,7 +389,7 @@ ggsave("Plots/sensitivity_Kw_clust.png", width = 13, height = 9)
 
 # function to plot heatmaps for model performance along the different parameter
 my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
-                         smet = "rmse") {
+                         smet = "rmse", contour = FALSE, n_contour = 5) {
   
   sens <- res_sens |> filter(lake == l & model == m & var == smet)
   pars <- unique(sens$names)
@@ -394,6 +418,21 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   thm <- theme_pubr(base_size = 13) + grids()
   
   pl <- lapply(combn(pars, 2, simplify = FALSE), function(p) {
+    # interpolate for contour plot
+    dat_tmp <- dat |> select(all_of(p[1]), all_of(p[2]), all_of(smet)) |>
+      setNames(c("x", "y", "z"))
+    xm <- mean(dat_tmp$x)
+    ym <- mean(dat_tmp$y)
+    dat_tmp <- mutate(dat_tmp, x = x/xm, y = y/ym)
+    dat_tmp <- with(dat_tmp, interp(x = x, y = y, z = z, nx = 100, ny = 100, extrap = FALSE))
+    cnt <- data.frame(dat_tmp$z)
+    colnames(cnt) <- dat_tmp$y
+    cnt$x <- dat_tmp$x
+
+    cnt <- pivot_longer(cnt, cols = -x, names_to = "y") |>
+      mutate(y = as.numeric(y)) |> mutate(x = x*xm, y = y*ym)
+    
+    # plot
     plt <- ggplot(dat_best) +
       geom_point(aes_string(x = p[1], y = p[2], color = smet), shape = 15,
                  size = 2, alpha = 0) +
@@ -407,6 +446,10 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
                                  b = 10,    # Bottom margin
                                  l = 10))
       
+    if(contour) {
+      plt <- plt + geom_contour(data = cnt, aes(x = x, y = y, z = value),
+                                col = alpha("black", 0.5), lwd = 0.85, bins = n_contour)
+    }
     
     if(log[pars %in% p[1]]) {
       plt <- plt + scale_x_log10()
@@ -424,7 +467,9 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
     scale_colour_viridis_c()
   legend <- get_legend(t)
   
-  t <- as_ggplot(arrangeGrob(text_grob(paste0("model: ", m, "\n lake: ", l)),
+  t <- as_ggplot(arrangeGrob(text_grob(paste0("model: ", m,
+                                              "\n lake: ", l,
+                                              "\n metric: ", smet)),
                              legend, ncol = 2))
   
   pl2 <- rep(list(NULL), (length(pars)-1)^2)
@@ -510,27 +555,26 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   pl2[[6]] <- t
   pl2[[11]] <- as_ggplot(text_grob(paste0("S_interaction = ",
                                           round(S_interaction, 3))))
+  
   do.call(grid.arrange, c(pl2, ncol = length(pars)-1, as.table = FALSE) )
-  
-  
   
 }
 
-p_gtm_kivu <- my_sens_plot(m = "GOTM", l = "Kivu", res_cali = res_cali,
+my_sens_plot(m = "GOTM", l = "Kivu", res_cali = res_cali,
                            res_sens = res_o)
-p_glm_biel <- my_sens_plot(m = "GLM", l = "Biel", res_cali = res_cali,
+ggsave("Plots/GOTM_kivu.png", width = 17, height = 12)
+
+my_sens_plot(m = "GLM", l = "Biel", res_cali = res_cali,
                            res_sens = res_o)
-p_fl_stech <- my_sens_plot(m = "FLake", l = "Stechlin", res_cali = res_cali,
+ggsave("Plots/GLM_biel.png", width = 17, height = 12)
+
+my_sens_plot(m = "FLake", l = "Stechlin", res_cali = res_cali,
                            res_sens = res_o)
-p_sim_erk <- my_sens_plot(m = "Simstrat", l = "Erken", res_cali = res_cali,
+ggsave("Plots/FLake_stechlin.png", width = 17, height = 12)
+
+my_sens_plot(m = "Simstrat", l = "Erken", res_cali = res_cali,
                           res_sens = res_o)
-
-
-
-ggsave("Plots/GOTM_kivu.png", plot = p_gtm_kivu, width = 17, height = 12)
-ggsave("Plots/GLM_biel.png", plot = p_glm_biel, width = 17, height = 12)
-ggsave("Plots/FLake_stechlin.png", plot = p_fl_stech, width = 17, height = 12)
-ggsave("Plots/Simstrat_erken.png", plot = p_sim_erk, width = 17, height = 12)
+ggsave("Plots/Simstrat_erken.png", width = 17, height = 12)
 
 
 # look at some of the lakes with large interaction measure
@@ -538,7 +582,7 @@ dat_iat |> filter(iat > 0.35) |> select(lake, model, var, iat) |>
   print(n = Inf)
 
 my_sens_plot(m = "FLake", l = "Allequash", res_cali = res_cali,
-             res_sens = res_o)
+             res_sens = res_o, n_contour = 7, contour = TRUE)
 
 my_sens_plot(m = "FLake", l = "Alqueva", res_cali = res_cali,
              res_sens = res_o, smet = "r")
@@ -553,8 +597,20 @@ my_sens_plot(m = "Simstrat", l = "Chao", res_cali = res_cali,
              res_sens = res_o, smet = "r")
 
 my_sens_plot(m = "GLM", l = "Chao", res_cali = res_cali,
-             res_sens = res_o, smet = "bias")
+             res_sens = res_o, smet = "bias", contour = TRUE)
 
-my_sens_plot(m = "FLake", l = "Alqueva", res_cali = res_cali,
-             res_sens = res_o, smet = "bias")
+# look at some of the lakes with small interaction measure
+dat_iat |> filter(iat > 0.35) |> select(lake, model, var, iat) |>
+  print(n = Inf)
 
+my_sens_plot(m = "GLM", l = "Zurich", res_cali = res_cali,
+             res_sens = res_o, smet = "nse", contour = TRUE, n_contour = 7)
+
+my_sens_plot(m = "Simstrat", l = "Vendyurskoe", res_cali = res_cali,
+             res_sens = res_o, smet = "r", contour = TRUE, n_contour = 7)
+
+my_sens_plot(m = "GOTM", l = "Rotorua", res_cali = res_cali,
+             res_sens = res_o, smet = "rmse", contour = TRUE, n_contour = 7)
+
+my_sens_plot(m = "FLake", l = "Tahoe", res_cali = res_cali,
+             res_sens = res_o, smet = "nse", contour = TRUE, n_contour = 7)
