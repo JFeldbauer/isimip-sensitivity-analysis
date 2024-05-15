@@ -68,6 +68,8 @@ res_o |> ggplot(aes(x = delta, y = S1, col = model), size = 0.6,
   facet_grid(var ~ names) + theme_pubr(base_size = 17) + grids() +
   xlim(0, 1) +  ylim(0, 1)
 
+##-------------- interaction measure ---------------------------------------
+
 # interactions measure: S_interact = 1 - sum(S1_i)
 dat_iat <- res_o |> group_by(lake, model, var) |> reframe(iat = 1 - sum(S1)) |>
   left_join(meta, by = c("lake" = "Lake.Short.Name"))
@@ -107,6 +109,15 @@ dat_iat |>
   facet_grid(~model) + xlab("Years with observations (-)") +
   ylab("Interaction measure (-)") +
   thm + scale_color_viridis_d("Cluster")
+
+ggsave("Plots/iat_obs_duration.pdf", width = 13, height = 5)
+
+# relate iat to most sensitive parameter
+res_o |> group_by(lake, model, var) |> reframe(max_d = max(delta),
+                                               max_S1 = max(S1)) |>
+  left_join(dat_iat) |> ggplot() +
+  geom_point(aes(iat, max_d, col = kmcluster)) + facet_grid(.~model) +
+  scale_color_viridis_d("Cluster") + thm
 
 ##--------- single most sensitive parameter  ---------------------------
 
@@ -298,6 +309,14 @@ rbind(delta_gip, S1_gip) |> filter(frac == "1") |> group_by(model, var, frac, la
   ggplot() + geom_point(aes(x = n, y = iat, col = kmcluster), size = 3) + 
   facet_grid(var~model) + scale_color_viridis_d("Cluster") + thm
 
+
+# lok at number of sensitive parameters, maximum sensitivity value and iat
+res_o |> group_by(lake, model, var) |> reframe(max_d = max(delta),
+                                               max_S1 = max(S1)) |>
+  left_join(dat_iat) |> left_join(delta_gip |> filter(frac == "1") |> group_by(model, var, lake) |> 
+                                    reframe(n = n())) |>
+  ggplot() + geom_point(aes(x = iat, y = max_d, col = kmcluster), size = 2.5) +
+  facet_grid(n ~ model) + scale_color_viridis_d("Cluster") + thm
 
 # plot iat against metric value of best performing parameter set
 rbind(S1_gip) |> filter(frac == "1") |> group_by(model, var, frac, lake, meas) |> 
@@ -582,22 +601,25 @@ dat_iat |> filter(iat > 0.35) |> select(lake, model, var, iat) |>
   print(n = Inf)
 
 my_sens_plot(m = "FLake", l = "Allequash", res_cali = res_cali,
-             res_sens = res_o, n_contour = 7, contour = TRUE)
+             res_sens = res_o, n_contour = 7, contour = FALSE)
+ggsave("Plots/FLaket_allequash.png", width = 17, height = 12)
 
-my_sens_plot(m = "FLake", l = "Alqueva", res_cali = res_cali,
-             res_sens = res_o, smet = "r")
+my_sens_plot(m = "GOTM", l = "Bosumtwi", res_cali = res_cali,
+             res_sens = res_o, smet = "rmse")
 
 my_sens_plot(m = "FLake", l = "Delavan", res_cali = res_cali,
              res_sens = res_o, smet = "nse")
 
 my_sens_plot(m = "Simstrat", l = "Tarawera", res_cali = res_cali,
              res_sens = res_o, smet = "nse")
+ggsave("Plots/Simstrat_erken.png", width = 17, height = 12)
 
 my_sens_plot(m = "Simstrat", l = "Chao", res_cali = res_cali,
              res_sens = res_o, smet = "r")
 
-my_sens_plot(m = "GLM", l = "Chao", res_cali = res_cali,
-             res_sens = res_o, smet = "bias", contour = TRUE)
+
+my_sens_plot(m = "GLM", l = "Tarawera", res_cali = res_cali,
+             res_sens = res_o, smet = "nse", contour = FALSE)
 
 # look at some of the lakes with small interaction measure
 dat_iat |> filter(iat > 0.35) |> select(lake, model, var, iat) |>

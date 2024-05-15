@@ -174,14 +174,18 @@ count_best <- rmse_ens |> group_by(lake, kmcluster) |>
   pivot_longer(3) |> 
   group_by(value, name, kmcluster) |>
   reframe(n =n()) |> group_by(kmcluster) |>
-  reframe(value = value, n = n/sum(n)) |>
-  rename(Cluster = "kmcluster", Model = "value", Fraction = "n") 
+  reframe(value = value, frac = n/sum(n), n = n) |>
+  rename(Cluster = "kmcluster", Model = "value", Fraction = "frac") 
 
-p_cnt_ens <- count_best |>  arrange(rev(Model)) |> ggplot() +
+p_cnt_ens <- count_best |>
+  mutate(Model = factor(Model, levels = c("Ensemble mean", "FLake", "GLM", "GOTM","Simstrat")),
+         Mod_f = abs(as.numeric(Model) - 6)) |>
+  arrange(Cluster, Mod_f) |>
+  ggplot() +
   geom_col(aes(x = "", y = Fraction, fill = Model),
            col = "white") +
   geom_text(aes(x = 1.73, y = Fraction, label = paste0(round(Fraction*100, 1) ,"%")),
-            position = position_stack(vjust=0.46),
+            position = position_stack(vjust=0.5),
             size = 4, col = "black") +
   coord_polar("y", start = 0) + theme_pubr(base_size = 16) +
   theme(axis.line = element_blank(),
