@@ -124,7 +124,7 @@ res_o |> pivot_longer(cols = c(delta, S1)) |> filter(names != "dummy") |>
   thm + xlab("parameter") +
   theme(axis.text.x=element_text(angle = -60, hjust = 0)) 
 
-ggsave("Plots/sens_value.pdf", width = 11, height = 9)
+ggsave("Plots/sens_value.pdf", width = 11, height = 9, device = cairo_pdf)
 
 
 # calculate single most sensitive parameter for each lake and model
