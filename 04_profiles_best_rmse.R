@@ -88,7 +88,7 @@ p_prfl <- dat |>
   facet_grid(.~kmcluster) + thm +
   scale_color_viridis_d("Model", option = "C", end = 0.9) +
   #scale_fill_viridis_d("Model", option = "C", alpha = 0.6) +
-  ylab("RMSE (°C)") + xlab("Relative depth (-)")
+  ylab("RMSE (K)") + xlab("Relative depth (-)")
 
 ggsave("Plots/profiles_best_rmse.png", p_prfl, width = 13, height = 9)
 

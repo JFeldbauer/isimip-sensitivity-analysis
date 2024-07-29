@@ -549,5 +549,6 @@ p_clst_char <- lapply(c(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
   return(p)
   }) |> ggpubr::ggarrange(plotlist = _)
 
-ggsave("Plots/clust_char.pdf", p_clst_char, width = 16, height = 12, bg = "white")
+ggsave("Plots/clust_char.pdf", p_clst_char, width = 16, height = 12, 
+       bg = "white", device = cairo_pdf)
 
