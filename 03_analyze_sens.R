@@ -579,30 +579,36 @@ my_sens_plot <- function(m = "GLM", l = "Zurich", res_cali, res_sens,
   
 }
 
+png("Plots/GOTM_kivu.png", width = 17, height = 12, units = "in", res = 300)
 my_sens_plot(m = "GOTM", l = "Kivu", res_cali = res_cali,
                            res_sens = res_o)
-ggsave("Plots/GOTM_kivu.png", width = 17, height = 12)
+dev.off()
 
+
+png("Plots/GLM_biel.png", width = 17, height = 12, units = "in", res = 300)
 my_sens_plot(m = "GLM", l = "Biel", res_cali = res_cali,
                            res_sens = res_o)
-ggsave("Plots/GLM_biel.png", width = 17, height = 12)
+dev.off()
 
+png("Plots/FLake_stechlin.png", width = 17, height = 12, units = "in", res = 300)
 my_sens_plot(m = "FLake", l = "Stechlin", res_cali = res_cali,
                            res_sens = res_o)
-ggsave("Plots/FLake_stechlin.png", width = 17, height = 12)
+dev.off()
 
+png("Plots/Simstrat_erken.png", width = 17, height = 12, units = "in", res = 300)
 my_sens_plot(m = "Simstrat", l = "Erken", res_cali = res_cali,
                           res_sens = res_o)
-ggsave("Plots/Simstrat_erken.png", width = 17, height = 12)
+dev.off()
 
 
 # look at some of the lakes with large interaction measure
 dat_iat |> filter(iat > 0.35) |> select(lake, model, var, iat) |>
   print(n = Inf)
-
+png("Plots/FLaket_allequash.png", width = 17, height = 12, units = "in", res = 300)
 my_sens_plot(m = "FLake", l = "Allequash", res_cali = res_cali,
              res_sens = res_o, n_contour = 7, contour = FALSE)
-ggsave("Plots/FLaket_allequash.png", width = 17, height = 12)
+dev.off()
+
 
 my_sens_plot(m = "GOTM", l = "Bosumtwi", res_cali = res_cali,
              res_sens = res_o, smet = "rmse")
@@ -610,9 +616,10 @@ my_sens_plot(m = "GOTM", l = "Bosumtwi", res_cali = res_cali,
 my_sens_plot(m = "FLake", l = "Delavan", res_cali = res_cali,
              res_sens = res_o, smet = "nse")
 
+png("Plots/Simstrat_erken.png", width = 17, height = 12, units = "in", res = 300)
 my_sens_plot(m = "Simstrat", l = "Tarawera", res_cali = res_cali,
              res_sens = res_o, smet = "nse")
-ggsave("Plots/Simstrat_erken.png", width = 17, height = 12)
+dev.off()
 
 my_sens_plot(m = "Simstrat", l = "Chao", res_cali = res_cali,
              res_sens = res_o, smet = "r")
