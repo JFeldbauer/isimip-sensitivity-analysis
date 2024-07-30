@@ -216,7 +216,7 @@ for(m in p_metrics) {
              col = "white") +
     geom_text(aes(x = 1.8, y = value, label = paste0(value ,"%")),
               position = position_stack(vjust=0.46),
-              size = 2.75, col = "black") +
+              size = 3.33, col = "black") +
     coord_polar("y", start = 0) + theme_void(base_size = 11) +
     labs(x = NULL, y = NULL, fill = NULL) +
     theme(legend.position = "right",
