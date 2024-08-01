@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/652652779.svg)](https://zenodo.org/doi/10.5281/zenodo.13150422)
 # isimip-sensitivity-analysis
 Using the results of the LakeEnsemblR calibration for the ISIMIP 3b simulations to discover more about lake model behaviour for a large set of lakes.
 
