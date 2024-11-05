@@ -1,0 +1,17 @@
+column_name,description
+par_id,"unique identifier for the parameter set consisting of model name, lake name, date of the start of calibration run, and parameter set"
+model,used model in the parameter set. This dataset contains simulations for Simstrat with parameter a_seich set to 0 and GOTM with parameter turb_param_k_min set to 1e-8. The model names are appended with '_r'
+lake,used lake in the parameter set
+rmse,root mean squared error of the parameter set (deg. Celsius)
+nse,Nash-Sutcliffe model efficiency of the parameter set (dimensionless)
+r,Pearson correlation coefficients for the parameter set (dimensionless)
+bias,bias of the parameter set (deg. Celsius)
+mae,mean absolute error of the parameter set (deg. Celsius)
+nmae,normalized mean absolute error of the parameter set (dimensionless)
+wind_speed,wind speed scaling factor (dimensionless) used in the parameter set
+swr,short wave radiation scaling factor (dimensionless) used in the parameter set
+bottom.h0b,"parameter value for bottom.h0b used for GOTM, if other model is used it will be NA"
+turb_param.const_num,"parameter value for turb_param_const_num used for GOTM, if other model is used it will be NA"
+hgeo,"parameter value for hgeo used for Simstrat, if other model is used it will be NA"
+cd,"parameter value for cd used for Simstrat, if other model is used it will be NA"
+Kw,light extinction coefficient (1/m) used in the parameter set

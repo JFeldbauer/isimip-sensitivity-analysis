@@ -274,9 +274,11 @@ silhouette_score <- function(k, dat){
 }
 k <- 2:10
 avg_sil <- sapply(k, silhouette_score, select(dat_clust_norm, -lake))
+
+cairo_pdf("Plots/silhouette_plot.pdf", width = 5, height = 3)
 plot(k, type='b', avg_sil, xlab='Number of clusters',
      ylab='Average Silhouette Scores', frame=FALSE)
-
+dev.off()
 # number of cluster for kmeans clustering
 nkmclust <- nclust
 

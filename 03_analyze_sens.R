@@ -402,6 +402,38 @@ res |> left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
 
 ggsave("Plots/sensitivity_Kw_clust.png", width = 13, height = 9)
 
+
+##--------- GOTM and kmin -----------------------------------------
+
+# look at cluster for GOTM
+p_sens_kmin <- res_o |> pivot_longer(cols = c(delta, S1)) |>
+  filter(names == "turb_param.k_min") |>
+  filter(model == "GOTM") |>
+  mutate(name = case_match(name,
+                           "delta" ~ "\u03B4",
+                           "S1" ~ "S1")) |>
+  mutate(var = ifelse(var == "bias", var, toupper(var))) |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  ggplot() +
+  geom_boxplot(aes(x = kmcluster, y = value, fill = kmcluster)) +
+  facet_grid(var ~ name, scales = "free") +
+  scale_fill_viridis_d("Cluster") +
+  thm + xlab("") +
+  theme(axis.text.x=element_text(angle = -60, hjust = 0),
+        legend.position = "none") + ylab("Value")
+
+
+p_kmin <- best_all |> filter(model == "GOTM") |>
+  left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(nm = "k_min") |> ggplot() +
+  geom_boxplot(aes(x = kmcluster, y = turb_param.k_min, fill = kmcluster)) +
+  scale_fill_viridis_d("Cluster") + thm + facet_grid(best_met~nm) +
+  theme(axis.text.x=element_text(angle = -60, hjust = 0),
+        legend.position = "none") + ylab("Value") + xlab("")
+
+ggarrange(p_kmin, p_sens_kmin, labels = c("(A)", "(B)"))
+
+ggsave("Plots/GOTM_kmin.pdf", width = 13, height = 7, device = cairo_pdf)
 ##---------- plots for single models -----------------------------
 
 #visual comparison of heatmaps against the calculated sensitivity metrics
