@@ -616,3 +616,13 @@ for(i in lake_chars){
   
   plts[[length(plts) + 1]] = p_i
 }
+
+##--- plot GOTM kmin
+
+res |> filter(model == "GOTM") |>
+  left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |> ggplot() +
+  #geom_point(aes(x = turb_param.k_min, y = rmse, col = kmcluster)) + 
+  geom_smooth(aes(x = turb_param.k_min, y = rmse, col = kmcluster)) + thm +
+  scale_x_log10() + scale_color_viridis_d("Cluster")
+
+
