@@ -19,6 +19,8 @@ library(ggpubr)
 library(knitr)
 library(nnet)
 library(data.table)
+library(lubridate)
+library(stringr)
 
 ## if not exsiting create a folder for intermediate results
 if(!file.exists("data_derived")) {
@@ -551,6 +553,40 @@ p_clst_char <- lapply(c(colnames(dat_clust)[!colnames(dat_clust) %in% c("lake",
   return(p)
   }) |> ggpubr::ggarrange(plotlist = _)
 
-ggsave("Plots/clust_char.pdf", p_clst_char, width = 16, height = 12, 
+ggsave("Plots/clust_char.pdf", p_clst_char, width = 16, height = 12,
        bg = "white", device = cairo_pdf)
 
+## violin plot observation characteristics
+# Source temperature observations and hypsographs come from
+# https://github.com/icra/ISIMIP_Local_Lakes/tree/main/LocalLakes
+# This information was calculated from these data, measuring the time difference
+# between the first and last day (days_start_end), the total number of unique
+# observations (tot_obs), the number of unique days with observations (num_days),
+# and the number of unique depths (after rounding to 1 decimal, num_depths)
+df_info = fread("data/lake_char_info.csv")
+
+plts = list()
+plts[[1]] = ggplot(df_info) +
+  geom_violin(aes(1, days_start_end / 365), fill = "lightblue") +
+  geom_jitter(aes(1, days_start_end / 365)) +
+  labs(x = element_blank(), y = "Years between first and last observation") +
+  theme_light() +
+  theme(axis.text.x = element_blank())
+plts[[2]] = ggplot(df_info) +
+  geom_violin(aes(1, num_days), fill = "lightgreen") +
+  geom_jitter(aes(1, num_days)) +
+  scale_y_log10() +
+  labs(x = element_blank(), y = "Number of unique days in observation record") +
+  theme_light() +
+  theme(axis.text.x = element_blank())
+plts[[3]] = ggplot(df_info) +
+  geom_violin(aes(1, num_depths), fill = "lightgrey") +
+  geom_jitter(aes(1, num_depths)) +
+  scale_y_log10() +
+  labs(x = element_blank(), y = "Number of unique depths in observation record") +
+  theme_light() +
+  theme(axis.text.x = element_blank())
+
+p_violin = ggarrange(plotlist = plts, ncol = 3, align = "h")
+ggsave("Plots/violin_plot_lake_info.pdf", plot = p_violin,
+       width = 11, height = 7)
