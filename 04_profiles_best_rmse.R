@@ -88,7 +88,7 @@ p_prfl <- dat |>
   facet_grid(.~kmcluster) + thm +
   scale_color_viridis_d("Model", option = "C", end = 0.9) +
   #scale_fill_viridis_d("Model", option = "C", alpha = 0.6) +
-  ylab("RMSE (K)") + xlab("Relative depth (-)")
+  ylab("RMSE (°C)") + xlab("Relative depth (-)")
 
 ggsave("Plots/profiles_best_rmse.png", p_prfl, width = 13, height = 9)
 
@@ -121,7 +121,7 @@ p_thermo <- dat_thermo |> ggplot() +
   facet_grid(.~kmcluster) +
   scale_fill_viridis_d("Model", option = "C", end = 0.9) + thm +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
-  ylab("RMSE (K)") + xlab("Model")
+  ylab("RMSE (°C)") + xlab("Model")
 
 ggsave("Plots/rmse_at_thermocline.png", p_thermo, width = 11, height = 6)
 
@@ -206,7 +206,7 @@ p_viol_ens <- rmse_ens |> ggplot() + geom_violin(aes(x = model, y = rmse, fill =
   facet_grid(.~kmcluster) + thm +
   theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
   scale_fill_manual("Model", values = c("black", viridis::plasma(4, end = 0.9))) +
-  xlab("Model") + ylab("RMSE (K)")
+  xlab("Model") + ylab("RMSE (°C)")
 
 ggpubr::ggarrange(p_cnt_ens, p_viol_ens, ncol = 1, common.legend = TRUE,
                   legend = "none")

@@ -425,6 +425,7 @@ p_sens_kmin <- res_o |> pivot_longer(cols = c(delta, S1)) |>
 
 p_kmin <- best_all |> filter(model == "GOTM") |>
   left_join(meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(best_met = ifelse(best_met == "bias", best_met, toupper(best_met))) |>
   mutate(nm = "k_min") |> ggplot() +
   geom_boxplot(aes(x = kmcluster, y = turb_param.k_min, fill = kmcluster)) +
   scale_fill_viridis_d("Cluster") + thm + facet_grid(best_met~nm) +

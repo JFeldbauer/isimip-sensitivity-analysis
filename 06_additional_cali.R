@@ -200,6 +200,7 @@ dat_diff <- best_all |> filter(model %in% c("GOTM", "GOTM_r",
 
 dat_diff |> filter(metric == best_met) |>
   left_join(lake_meta, by = c("lake" = "Lake.Short.Name")) |>
+  mutate(metric = ifelse(metric == "bias", metric, toupper(metric))) |>
   ggplot() +
   geom_hline(aes(yintercept = 0), lwd = 1.3, col = "grey") +
   geom_violin(aes(x = name, y = difference, fill = name)) +
